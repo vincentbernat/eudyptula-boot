@@ -38,13 +38,6 @@ Once compiled, the kernel needs to be installed in some work directory:
 
     $ make install modules_install INSTALL_MOD_PATH=$WORK INSTALL_PATH=$WORK
 
-If you want to use your distro kernel, just use symlinks:
-
-    $ cd $WORK
-    $ ln -s /boot/config* .
-    $ ln -s /boot/vmlinuz* .
-    $ ln -s /lib .
-
 Then, boot your kernel with:
 
     $ eudyptula-boot vmlinuz-3.15.0~rc5-02950-g7e61329b0c26
