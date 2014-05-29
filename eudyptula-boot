@@ -107,7 +107,10 @@ setup_initrd () {
     [ -z "$MODULES" ] || {
         for mod in 9pnet_virtio 9p aufs virtio_pci; do
             modprobe --all --set-version="${VERSION}" -d ${MODULES}/../../.. \
-                --ignore-install --quiet --show-depends $mod > /dev/null || log_error_msg "Unable to find module $mod"
+                --ignore-install --quiet --show-depends $mod > /dev/null || {
+                log_warn_msg "Unable to find module $mod"
+                log_begin_msg "Continue building initrd"
+            }
             modprobe --all --set-version="${VERSION}" -d ${MODULES}/../../.. \
                 --ignore-install --quiet --show-depends $mod |
             while read prefix kmod options ; do
