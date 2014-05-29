@@ -36,7 +36,7 @@ Ensure you have the following options enabled (as a module or builtin):
 
 Once compiled, the kernel needs to be installed in some work directory:
 
-    $ make install modules_install INSTALL_MOD_PATH=$WORK INSTALL_PATH=$WORK
+    $ make all modules_install install INSTALL_MOD_PATH=$WORK INSTALL_PATH=$WORK
 
 Then, boot your kernel with:
 
