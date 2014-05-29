@@ -43,17 +43,17 @@ check_kernel() {
     CONFIG="$(dirname $KERNEL)/config-$VERSION"
     [ -f "$CONFIG" ] || log_error_msg "Unable to find configuration file $CONFIG"
     cat <<EOF | while read el; do
-9P_FS
-AUFS_FS
-NET_9P
-NET_9P_VIRTIO
-VIRTIO
-VIRTIO_PCI
-SERIAL_8250
-SERIAL_8250_CONSOLE
-TMPFS
+9P_FS=[ym]
+AUFS_FS=[ym]
+NET_9P=[ym]
+NET_9P_VIRTIO=[ym]
+VIRTIO=[ym]
+VIRTIO_PCI=[ym]
+SERIAL_8250=y
+SERIAL_8250_CONSOLE=y
+TMPFS=y
 EOF
-        grep -qx "CONFIG_$el=[ym]" $CONFIG || log_error_msg "Kernel not configured with CONFIG_$el"
+        grep -qx "CONFIG_$el" $CONFIG || log_error_msg "Kernel not configured with CONFIG_$el"
     done
     log_ok_msg "Kernel configuration checked"
 
