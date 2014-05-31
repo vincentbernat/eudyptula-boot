@@ -164,6 +164,8 @@ start_vm () {
         -fsdev local,security_model=none,id=fsdev-modules,path=${MODULES}/.. \
         -device virtio-9p-pci,id=fs-modules,fsdev=fsdev-modules,mount_tag=moduleshare \
         \
+        -usb \
+        \
         -gdb unix:$TMP/vm-$name-gdb.pipe,server,nowait \
         -no-reboot \
         -kernel $KERNEL \
