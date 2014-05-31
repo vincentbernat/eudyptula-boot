@@ -171,6 +171,9 @@ start_vm () {
         -append "uts=$name console=ttyS0 panic=1 TERM=$TERM quiet"
         "$@"
 EOF
+    log_info_msg "GDB server listening on $TMP/vm-$name-gdb.pipe"
+    log_info_msg "monitor listening on    $TMP/vm-$name-console.pipe"
+    log_info_msg "ttyS1 listening on      $TMP/vm-$name-serial.pipe"
     chmod +x "$TMP/vm-$name.exec"
     "$TMP/vm-$name.exec"
     log_info_msg "VM has terminated with status $?"
