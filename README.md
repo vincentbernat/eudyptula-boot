@@ -43,3 +43,29 @@ Then, boot your kernel with:
     $ eudyptula-boot vmlinuz-3.15.0~rc5-02950-g7e61329b0c26
 
 Any additional parameters will be given to KVM.
+
+Before booting the kernel, the path to GDB socket will be
+displayed. You can use it by running gdb on `vmlinux` (which is
+somewhere in the source tree):
+
+    $ gdb vmlinux
+    GNU gdb (GDB) 7.4.1-debian
+    Reading symbols from /home/bernat/src/linux/vmlinux...done.
+    (gdb) target remote | socat UNIX:/path/to/vm-eudyptula-gdb.pipe -
+    Remote debugging using | socat UNIX:/path/to/vm-eudyptula-gdb.pipe -
+    native_safe_halt () at /home/bernat/src/linux/arch/x86/include/asm/irqflags.h:50
+    50  }
+    (gdb)
+
+A serial port is also exported. It can be convenient for remote
+debugging of userland processes. More details can be found in this
+[blog post][] (which also covers debugging the kernel).
+
+[blog post]: http://vincent.bernat.im/en/blog/2012-network-lab-kvm.html
+
+QEMU monitor is also attached to a UNIX socket. You can use the
+following command to interact with it:
+
+    $ socat - UNIX:/path/to/vm-eudyptula-console.pipe
+    QEMU 2.0.0 monitor - type 'help' for more information
+    (qemu)
