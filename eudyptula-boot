@@ -137,7 +137,8 @@ setup_initrd () {
 }
 
 start_vm () {
-    log_info_msg "Start VM"
+    name=$(echo eudyptula-${VERSION} | tr '.' '-')
+    log_info_msg "Start VM $name"
     # /root is mounted with version 9p2000.u to allow access to /dev,
     # /sys and to mount new partitions over them. This is not the case
     # for 9p2000.L.
@@ -167,7 +168,7 @@ start_vm () {
         -no-reboot \
         -kernel $KERNEL \
         -initrd $TMP/initrd.gz \
-        -append "uts=linux-$VERSION console=ttyS0 panic=1 TERM=$TERM quiet"
+        -append "uts=$name console=ttyS0 panic=1 TERM=$TERM quiet"
         "$@"
 EOF
     chmod +x "$TMP/vm-$name.exec"
