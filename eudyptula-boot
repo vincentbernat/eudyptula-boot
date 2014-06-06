@@ -249,7 +249,7 @@ EOF
 #!/bin/sh
 echo b > /proc/sysrq-trigger
 EOF
-        log_ok_msg "Systems can be halted with halt or reboot"
+        log_ok_msg "System can be halted with halt or reboot"
 
         log_info_msg "Spawning a shell"
         cd  $HOME
