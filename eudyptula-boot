@@ -112,7 +112,7 @@ setup_initrd () {
     # Add modules
     [ -z "$MODULES" ] || {
         modules="9pnet_virtio 9p virtio_pci"
-        [ x"aufs" != x"yes" ] || modules="$modules aufs"
+        [ x"$aufs" != x"yes" ] || modules="$modules aufs"
         for mod in $modules; do
             modprobe --all --set-version="${VERSION}" -d ${MODULES}/../../.. \
                 --ignore-install --quiet --show-depends $mod > /dev/null || {
