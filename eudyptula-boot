@@ -178,7 +178,7 @@ start_vm () {
         -kernel $KERNEL \
         -initrd $TMP/initrd.gz \
         -append "uts=$name console=ttyS0 panic=1 TERM=$TERM aufs=$aufs quiet" \
-        "$@"
+        $@
 EOF
     log_info_msg "GDB server listening on $TMP/vm-$name-gdb.pipe"
     log_info_msg "monitor listening on    $TMP/vm-$name-console.pipe"
