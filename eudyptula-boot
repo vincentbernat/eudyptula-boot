@@ -221,8 +221,10 @@ case $$,$STATE in
         log_ok_msg "Root file system setup"
 
         log_begin_msg "Clean /tmp and /run"
-        for fs in /run /var/tmp /var/log /tmp; do
-            mount -t tmpfs tmpfs /tmp/target/overlay$fs -o rw,nosuid,nodev
+        for fs in /run /var/run /var/tmp /var/log /tmp; do
+            if [ -d /tmp/target/overlay$fs ] && [ ! -h /tmp/target/overlay$fs ]; then
+                mount -t tmpfs tmpfs /tmp/target/overlay$fs -o rw,nosuid,nodev
+            fi
         done
         log_ok_msg "/tmp, /run and others are clean"
 
