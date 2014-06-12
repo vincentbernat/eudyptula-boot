@@ -44,7 +44,6 @@ check_kernel() {
     [ -f "$CONFIG" ] || log_error_msg "Unable to find configuration file $CONFIG"
     cat <<EOF | while read el; do
 9P_FS=[ym]
-AUFS_FS=[ym]
 NET_9P=[ym]
 NET_9P_VIRTIO=[ym]
 VIRTIO=[ym]
@@ -56,7 +55,13 @@ BLK_DEV_INITRD=y
 EOF
         grep -qx "CONFIG_$el" $CONFIG || log_error_msg "Kernel not configured with CONFIG_$el"
     done
-    log_ok_msg "Kernel configuration checked"
+    if grep -qc "CONFIG_AUFS_FS=[ym]" $CONFIG; then
+        log_ok_msg "Kernel configuration checked. AUFS present"
+        aufs=yes
+    else
+        log_warn_msg "Kernel configuration checked. AUFS *not* present"
+        aufs=no
+    fi
 
     log_begin_msg "Search for modules"
     for dir in "$(dirname $KERNEL)/lib/modules/$VERSION" "/lib/modules/$VERSION"; do
@@ -106,7 +111,9 @@ setup_initrd () {
 
     # Add modules
     [ -z "$MODULES" ] || {
-        for mod in 9pnet_virtio 9p aufs virtio_pci; do
+        modules="9pnet_virtio 9p virtio_pci"
+        [ x"aufs" != x"yes" ] || modules="$modules aufs"
+        for mod in $modules; do
             modprobe --all --set-version="${VERSION}" -d ${MODULES}/../../.. \
                 --ignore-install --quiet --show-depends $mod > /dev/null || {
                 log_warn_msg "Unable to find module $mod"
@@ -170,7 +177,7 @@ start_vm () {
         -no-reboot \
         -kernel $KERNEL \
         -initrd $TMP/initrd.gz \
-        -append "uts=$name console=ttyS0 panic=1 TERM=$TERM quiet"
+        -append "uts=$name console=ttyS0 panic=1 TERM=$TERM aufs=$aufs quiet"
         "$@"
 EOF
     log_info_msg "GDB server listening on $TMP/vm-$name-gdb.pipe"
@@ -196,18 +203,29 @@ case $$,$STATE in
             . /modules
         }
 
-        log_begin_msg "Setup AUFS"
+        log_begin_msg "Setup root file system"
         mount -n -t tmpfs tmpfs /tmp -o rw
         mkdir /tmp/target
         mkdir /tmp/target/ro
-        mkdir /tmp/target/rw
         mkdir /tmp/target/overlay
         mount -n -t 9p    rootshare /tmp/target/ro      -o trans=virtio,version=9p2000.u,ro
-        mount -n -t tmpfs tmpfs     /tmp/target/rw      -o rw
-        mount -n -t aufs  aufs      /tmp/target/overlay -o noxino,noatime,dirs=/tmp/target/rw:/tmp/target/ro=ro
+        if [ x"$aufs" = x"yes" ]; then
+            mkdir /tmp/target/rw
+            mount -n -t tmpfs tmpfs     /tmp/target/rw      -o rw
+            mount -n -t aufs  aufs      /tmp/target/overlay -o noxino,noatime,dirs=/tmp/target/rw:/tmp/target/ro=ro
+        else
+            mount -n --bind /tmp/target/ro /tmp/target/overlay
+        fi
         mount -n -t proc  proc /tmp/target/overlay/proc
         mount -n -t sysfs sys  /tmp/target/overlay/sys
-        log_ok_msg "AUFS setup"
+        log_ok_msg "Root file system setup"
+
+        log_begin_msg "Clean /tmp and /run"
+        for fs in /run /var/tmp /var/log /tmp; do
+            mount -t tmpfs tmpfs /tmp/target/overlay$fs -o rw,nosuid,nodev
+        done
+        log_ok_msg "/tmp, /run and others are clean"
+
 
         log_begin_msg "Mount /root"
         mount -t 9p homeshare /tmp/target/overlay/root -o trans=virtio,version=9p2000.L,access=0,rw || \
@@ -220,32 +238,28 @@ case $$,$STATE in
 
         log_info_msg "Change root"
         export STATE=CHROOTED
-        cp /init /tmp/target/overlay
-        exec chroot /tmp/target/overlay /init
+        cp /init /tmp/target/overlay/tmp
+        exec chroot /tmp/target/overlay /tmp/init
         ;;
 
     1,CHROOTED)
-        log_begin_msg "Clean /tmp and /run"
-        for fs in /run /var/run /var/tmp /var/log /tmp; do
-            mount -t tmpfs tmpfs $fs -o rw,nosuid,nodev
-        done
-        log_ok_msg "/tmp, /run and others are clean"
-
         log_info_msg "Start udev"
         /etc/init.d/udev start
 
         log_info_msg "Setup terminal"
         export STATE=GETTY
-        exec setsid /sbin/getty -L ttyS0 -a root -l /init -i 115200 $TERM
+        exec setsid /sbin/getty -L ttyS0 -a root -l /tmp/init -i 115200 $TERM
         ;;
 
     1,GETTY)
         log_begin_msg "Setup additional commands"
-        cat <<EOF > /sbin/reboot
+        mkdir /tmp/tools
+        export PATH=$PATH:/tmp/tools
+        cat <<EOF > /tmp/tools/reboot
 #!/bin/sh
 echo b > /proc/sysrq-trigger
 EOF
-        cat <<EOF > /sbin/halt
+        cat <<EOF > /tmp/tools/halt
 #!/bin/sh
 echo b > /proc/sysrq-trigger
 EOF
