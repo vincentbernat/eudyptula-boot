@@ -292,8 +292,12 @@ EOF
         }
         PROGNAME="$(readlink -f "$0")"
         ROOT="$(readlink -f "${ROOT:-/}")" # Root filesystem
-        KERNEL="$(readlink -f "${1:-/boot/vmlinuz-$(uname -r)}")" # Kernel
-        [ $# -lt 1 ] || shift
+        if [ -f "$1" ]; then
+            KERNEL="$(readlink -f "$1")" # Kernel
+            shift
+        else
+            KERNEL="/boot/vmlinuz-$(uname -r)"
+        fi
 
         check_kernel
         check_dependencies
