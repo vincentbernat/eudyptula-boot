@@ -42,7 +42,10 @@ Then, boot your kernel with:
 
     $ eudyptula-boot vmlinuz-3.15.0~rc5-02950-g7e61329b0c26
 
-Any additional parameters will be given to the kernel.
+Any additional parameters will be given to the kernel until the first
+occurrence of `--`. Remaining arguments will be given to KVM. For example:
+
+    $ eudyptula-boot /vmlinuz cgroup_enable=memory -- -usb
 
 Before booting the kernel, the path to GDB socket will be
 displayed. You can use it by running gdb on `vmlinux` (which is
