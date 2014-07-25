@@ -255,6 +255,8 @@ case $$,$STATE in
         log_info_msg "Start udev"
         /etc/init.d/udev start
 
+        sysctl -w kernel.panic_on_oops=1
+
         log_info_msg "Setup terminal"
         export STATE=GETTY
         exec setsid /sbin/getty -L ttyS0 -a root -l /tmp/init -i 115200 $TERM
