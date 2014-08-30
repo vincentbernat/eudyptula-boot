@@ -44,6 +44,7 @@ Options:
  -r, --root=DIR        Specify the directory to use as the root file system.
  -c, --cmdline=ARGS    Additional parameters for the kernel.
  --qemu=OPTIONS        Additional options for QEMU.
+ --net                 Enable network access through the host.
 
 EOF
 }
@@ -169,6 +170,13 @@ start_vm () {
     # /sys and to mount new partitions over them. This is not the case
     # for 9p2000.L.
     append="uts=$name console=ttyS0 panic=1 TERM=$TERM aufs=$aufs quiet $CMDLINE"
+    [ x"$NET" != x"1" ] || {
+        mac=$(echo $name-1 | sha1sum | \
+            awk '{print "50:54:" substr($1,0,2) ":" substr($1, 2, 2) ":" substr($1, 4, 2) ":" substr($1, 6, 2)}')
+        netargs=""
+        netargs="$netargs -net nic,model=virtio,macaddr=$mac,vlan=1"
+        netargs="$netargs -net user,vlan=1"
+    }
     cat <<EOF > "$TMP/vm-$name.exec"
 #!/bin/sh
         exec qemu-system-x86_64 \
@@ -196,6 +204,7 @@ start_vm () {
         -kernel $KERNEL \
         -initrd $TMP/initrd.gz \
         -append "$append" \
+        $netargs \
         $QEMU
 EOF
     log_info_msg "GDB server listening on $TMP/vm-$name-gdb.pipe"
@@ -344,7 +353,7 @@ EOF
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
             -o hk:r:c: \
-            --longoptions help,kernel:,root:,cmdline:,qemu: \
+            --longoptions help,kernel:,root:,cmdline:,qemu:,net \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -369,6 +378,10 @@ EOF
                 --qemu)
                     QEMU="$2"
                     shift 2
+                    ;;
+                --net)
+                    NET=1
+                    shift
                     ;;
                 -- )
                     shift
