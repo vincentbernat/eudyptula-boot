@@ -171,11 +171,10 @@ start_vm () {
     # for 9p2000.L.
     append="uts=$name console=ttyS0 panic=1 TERM=$TERM aufs=$aufs quiet $CMDLINE"
     [ x"$NET" != x"1" ] || {
-        mac=$(echo $name-1 | sha1sum | \
-            awk '{print "50:54:" substr($1,0,2) ":" substr($1, 2, 2) ":" substr($1, 4, 2) ":" substr($1, 6, 2)}')
+        mac=50:54:00:00:00:42
         netargs=""
         netargs="$netargs -net nic,model=virtio,macaddr=$mac,vlan=1"
-        netargs="$netargs -net user,vlan=1"
+        netargs="$netargs -net user,vlan=1,name=internet"
     }
     cat <<EOF > "$TMP/vm-$name.exec"
 #!/bin/sh
@@ -322,6 +321,20 @@ case $$,$STATE in
         stty -raw
         stty echo
         log_ok_msg "Terminal size is $(tput cols)x$(tput lines)"
+
+        log_begin_msg "Configure network"
+        ip link set up dev lo
+        for iface in /sys/class/net/*; do
+            if [ x"$(cat "$iface/address")" = x"50:54:00:00:00:42" ]; then
+                # We don't use DHCP as the root filesystem may be read-only
+                ip link set up dev "${iface##*/}"
+                ip addr add 10.0.2.15/24 dev "${iface##*/}"
+                ip route add default via 10.0.2.2
+                break
+            fi
+            iface=
+        done
+        log_ok_msg "Network configured${iface:+ (${iface##*/})}"
 
         log_begin_msg "Setup additional commands"
         mkdir /tmp/tools
