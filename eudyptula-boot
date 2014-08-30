@@ -43,6 +43,7 @@ Options:
                        running kernel.
  -r, --root=DIR        Specify the directory to use as the root file system.
  -c, --cmdline=ARGS    Additional parameters for the kernel.
+ --qemu=OPTIONS        Additional options for QEMU.
 
 EOF
 }
@@ -195,7 +196,7 @@ start_vm () {
         -kernel $KERNEL \
         -initrd $TMP/initrd.gz \
         -append "$append" \
-        $@
+        $QEMU
 EOF
     log_info_msg "GDB server listening on $TMP/vm-$name-gdb.pipe"
     log_info_msg "monitor listening on    $TMP/vm-$name-console.pipe"
@@ -343,7 +344,7 @@ EOF
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
             -o hk:r:c: \
-            --longoptions help,kernel:,root:,cmdline: \
+            --longoptions help,kernel:,root:,cmdline:,qemu: \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -363,6 +364,10 @@ EOF
                     ;;
                 -c | --cmdline)
                     CMDLINE="$2"
+                    shift 2
+                    ;;
+                --qemu)
+                    QEMU="$2"
                     shift 2
                     ;;
                 -- )
