@@ -330,6 +330,8 @@ case $$,$STATE in
                 ip link set up dev "${iface##*/}"
                 ip addr add 10.0.2.15/24 dev "${iface##*/}"
                 ip route add default via 10.0.2.2
+                echo "nameserver 10.0.2.3" > /tmp/resolv.conf
+                mount --bind /tmp/resolv.conf /etc/resolv.conf
                 break
             fi
             iface=
