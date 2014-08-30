@@ -328,7 +328,7 @@ case $$,$STATE in
             if [ x"$(cat "$iface/address")" = x"50:54:00:00:00:42" ]; then
                 # We don't use DHCP as the root filesystem may be read-only
                 ip link set up dev "${iface##*/}"
-                ip addr add 10.0.2.15/24 dev "${iface##*/}"
+                ip addr add 10.0.2.14/24 dev "${iface##*/}"
                 ip route add default via 10.0.2.2
                 echo "nameserver 10.0.2.3" > /tmp/resolv.conf
                 mount --bind /tmp/resolv.conf /etc/resolv.conf
