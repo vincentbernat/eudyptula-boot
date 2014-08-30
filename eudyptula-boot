@@ -32,6 +32,20 @@ log_info_msg () {
     echo "$BOLD$BLUE[∗]$NORMAL $1."
 }
 
+usage() {
+    >&2 cat <<EOF
+Usage: $PROGNAME [ options ]
+Boot a Linux kernel using the root filesystem of the host as a base.
+
+Options:
+
+ -k, --kernel=BZIMAGE  Specify the kernel to boot. By default, boot on the
+                       running kernel.
+ -r, --root=DIR        Specify the directory to use as the root file system.
+
+EOF
+}
+
 check_kernel() {
     log_begin_msg "Checking kernel version"
     [ -f "$KERNEL" ] || log_error_msg "Unable to find kernel $KERNEL"
@@ -331,24 +345,48 @@ EOF
 
     *,BEGIN)
         # Initial state
-        [ $(id -u) != 0 ] || {
-            log_error_msg "You should not run this as root"
-            exit 1
-        }
+        [ $(id -u) != 0 ] || log_error_msg "You should not run this as root"
+
         PROGNAME="$(readlink -f "$0")"
-        ROOT="$(readlink -f "${ROOT:-/}")" # Root filesystem
-        if [ -f "$1" ]; then
-            KERNEL="$(readlink -f "$1")" # Kernel
-            shift
-        else
-            KERNEL="/boot/vmlinuz-$(uname -r)"
-        fi
+        ARGS="$(getopt -n eudyptula-boot \
+            -o hk:r: \
+            --longoptions help,kernel:,root: \
+            -- "$@")" || \
+            log_error_msg "Invalid option, use --help for more information"
+        eval set -- "$ARGS"
+        while true; do
+            case "$1" in
+                -h | --help)
+                    usage
+                    exit 0
+                    ;;
+                -k | --kernel)
+                    KERNEL="$(readlink -f "$2")"
+                    shift 2
+                    ;;
+                -r | --root)
+                    ROOT="$(readlink -f "$2")"
+                    shift 2
+                    ;;
+                -- )
+                    shift
+                    break
+                    ;;
+                * )
+                    log_error_msg "Unknown argument \`$1'"
+                    ;;
+            esac
+        done
+        [ $# -eq 0 ] || log_error_msg "Not accepting any additional argument"
+
+        KERNEL="${KERNEL:-/boot/vmlinuz-$(uname -r)}"
+        ROOT="${ROOT:-/}"
 
         check_kernel
         check_dependencies
         setup_tmp
         setup_initrd
-        start_vm "$@"
+        start_vm
         rm -rf $TMP || true
         ;;
 esac
