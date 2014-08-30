@@ -42,6 +42,7 @@ Options:
  -k, --kernel=BZIMAGE  Specify the kernel to boot. By default, boot on the
                        running kernel.
  -r, --root=DIR        Specify the directory to use as the root file system.
+ -c, --cmdline=ARGS    Additional parameters for the kernel.
 
 EOF
 }
@@ -166,15 +167,7 @@ start_vm () {
     # /root is mounted with version 9p2000.u to allow access to /dev,
     # /sys and to mount new partitions over them. This is not the case
     # for 9p2000.L.
-    append="uts=$name console=ttyS0 panic=1 TERM=$TERM aufs=$aufs quiet"
-    while [ $# -gt 0 ]; do
-        if [ x"$1" = x"--" ]; then
-            shift
-            break
-        fi
-        append="$append $1"
-        shift
-    done
+    append="uts=$name console=ttyS0 panic=1 TERM=$TERM aufs=$aufs quiet $CMDLINE"
     cat <<EOF > "$TMP/vm-$name.exec"
 #!/bin/sh
         exec qemu-system-x86_64 \
@@ -349,8 +342,8 @@ EOF
 
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
-            -o hk:r: \
-            --longoptions help,kernel:,root: \
+            -o hk:r:c: \
+            --longoptions help,kernel:,root:,cmdline: \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -366,6 +359,10 @@ EOF
                     ;;
                 -r | --root)
                     ROOT="$(readlink -f "$2")"
+                    shift 2
+                    ;;
+                -c | --cmdline)
+                    CMDLINE="$2"
                     shift 2
                     ;;
                 -- )
