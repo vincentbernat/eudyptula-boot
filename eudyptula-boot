@@ -299,6 +299,15 @@ case $$,$STATE in
         done
         log_ok_msg "Network configured${iface:+ (${iface##*/})}"
 
+        # Do we have an exec share?
+        execshare=$(mktemp -d)
+        if mount -t 9p execshare $execshare \
+            -o trans=virtio,version=9p2000.L,access=0,ro 2> /dev/null; then
+            log_info_msg "Executing requested script"
+            sh "$execshare/auto"
+            echo b > /proc/sysrq-trigger
+        fi
+        
         log_info_msg "Setup terminal"
         export STATE=GETTY
         exec setsid /sbin/getty -L ttyS0 -a root -l /tmp/init -i 115200 $TERM
@@ -344,15 +353,6 @@ case $$,$STATE in
         stty -raw
         stty echo
         log_ok_msg "Terminal size is $(tput cols)x$(tput lines)"
-
-        # Do we have an exec share?
-        execshare=$(mktemp -d)
-        if mount -t 9p execshare $execshare \
-            -o trans=virtio,version=9p2000.L,access=0,ro 2> /dev/null; then
-            log_info_msg "Executing requested script"
-            sh "$execshare/auto"
-            echo b > /proc/sysrq-trigger
-        fi
 
         log_begin_msg "Setup additional commands"
         mkdir /tmp/tools
