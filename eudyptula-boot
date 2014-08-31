@@ -351,7 +351,7 @@ case $$,$STATE in
             -o trans=virtio,version=9p2000.L,access=0,ro 2> /dev/null; then
             log_info_msg "Executing requested script"
             sh "$execshare/auto"
-            exit $?
+            echo b > /proc/sysrq-trigger
         fi
 
         log_begin_msg "Setup additional commands"
