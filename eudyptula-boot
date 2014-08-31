@@ -283,6 +283,22 @@ case $$,$STATE in
 
         sysctl -w kernel.panic_on_oops=1
 
+        log_begin_msg "Configure network"
+        ip link set up dev lo
+        for iface in /sys/class/net/*; do
+            if [ x"$(cat "$iface/address")" = x"50:54:00:00:00:42" ]; then
+                # We don't use DHCP as the root filesystem may be read-only
+                ip link set up dev "${iface##*/}"
+                ip addr add 10.0.2.14/24 dev "${iface##*/}"
+                ip route add default via 10.0.2.2
+                echo "nameserver 10.0.2.3" > /tmp/resolv.conf
+                mount --bind /tmp/resolv.conf /etc/resolv.conf
+                break
+            fi
+            iface=
+        done
+        log_ok_msg "Network configured${iface:+ (${iface##*/})}"
+
         log_info_msg "Setup terminal"
         export STATE=GETTY
         exec setsid /sbin/getty -L ttyS0 -a root -l /tmp/init -i 115200 $TERM
@@ -328,22 +344,6 @@ case $$,$STATE in
         stty -raw
         stty echo
         log_ok_msg "Terminal size is $(tput cols)x$(tput lines)"
-
-        log_begin_msg "Configure network"
-        ip link set up dev lo
-        for iface in /sys/class/net/*; do
-            if [ x"$(cat "$iface/address")" = x"50:54:00:00:00:42" ]; then
-                # We don't use DHCP as the root filesystem may be read-only
-                ip link set up dev "${iface##*/}"
-                ip addr add 10.0.2.14/24 dev "${iface##*/}"
-                ip route add default via 10.0.2.2
-                echo "nameserver 10.0.2.3" > /tmp/resolv.conf
-                mount --bind /tmp/resolv.conf /etc/resolv.conf
-                break
-            fi
-            iface=
-        done
-        log_ok_msg "Network configured${iface:+ (${iface##*/})}"
 
         # Do we have an exec share?
         execshare=$(mktemp -d)
