@@ -43,6 +43,7 @@ Options:
                        running kernel.
  -r, --root=DIR        Specify the directory to use as the root file system.
  -c, --cmdline=ARGS    Additional parameters for the kernel.
+ -e, --exec=CMD        Execute a command instead of spawning a shell.
  --qemu=OPTIONS        Additional options for QEMU.
  --net                 Enable network access through the host.
 
@@ -170,11 +171,17 @@ start_vm () {
     # /sys and to mount new partitions over them. This is not the case
     # for 9p2000.L.
     append="uts=$name console=ttyS0 panic=1 TERM=$TERM aufs=$aufs quiet $CMDLINE"
+    qemu="$QEMU"
     [ x"$NET" != x"1" ] || {
         mac=50:54:00:00:00:42
-        netargs=""
-        netargs="$netargs -net nic,model=virtio,macaddr=$mac,vlan=1"
-        netargs="$netargs -net user,vlan=1,name=internet"
+        qemu="$qemu -net nic,model=virtio,macaddr=$mac,vlan=1"
+        qemu="$qemu -net user,vlan=1,name=internet"
+    }
+    [ -z "$EXEC" ] || {
+        mkdir "$TMP/vm-exec"
+        echo "$EXEC" > "$TMP/vm-exec/auto"
+        qemu="$qemu -fsdev local,security_model=passthrough,id=fsdev-exec,path=$TMP/vm-exec,readonly"
+        qemu="$qemu -device virtio-9p-pci,id=fs-exec,fsdev=fsdev-exec,mount_tag=execshare"
     }
     cat <<EOF > "$TMP/vm-$name.exec"
 #!/bin/sh
@@ -203,8 +210,8 @@ start_vm () {
         -kernel $KERNEL \
         -initrd $TMP/initrd.gz \
         -append "$append" \
-        $netargs \
-        $QEMU
+        \
+        $qemu
 EOF
     log_info_msg "GDB server listening on $TMP/vm-$name-gdb.pipe"
     log_info_msg "monitor listening on    $TMP/vm-$name-console.pipe"
@@ -338,6 +345,15 @@ case $$,$STATE in
         done
         log_ok_msg "Network configured${iface:+ (${iface##*/})}"
 
+        # Do we have an exec share?
+        execshare=$(mktemp -d)
+        if mount -t 9p execshare $execshare \
+            -o trans=virtio,version=9p2000.L,access=0,ro 2> /dev/null; then
+            log_info_msg "Executing requested script"
+            sh "$execshare/auto"
+            exit $?
+        fi
+
         log_begin_msg "Setup additional commands"
         mkdir /tmp/tools
         export PATH=$PATH:/tmp/tools
@@ -367,8 +383,8 @@ EOF
 
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
-            -o hk:r:c: \
-            --longoptions help,kernel:,root:,cmdline:,qemu:,net \
+            -o hk:r:c:e: \
+            --longoptions help,kernel:,root:,cmdline:,qemu:,net,exec: \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -397,6 +413,10 @@ EOF
                 --net)
                     NET=1
                     shift
+                    ;;
+                -e | --exec)
+                    EXEC="$2"
+                    shift 2
                     ;;
                 -- )
                     shift
