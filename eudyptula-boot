@@ -295,7 +295,7 @@ case $$,$STATE in
         udevadm settle
         log_ok_msg "udev started"
 
-        sysctl -w kernel.panic_on_oops=1
+        sysctl -qw kernel.panic_on_oops=1
 
         log_begin_msg "Configure network"
         ip link set up dev lo
@@ -321,7 +321,7 @@ case $$,$STATE in
             sh "$execshare/auto"
             echo b > /proc/sysrq-trigger
         fi
-        
+
         log_info_msg "Setup terminal"
         export STATE=GETTY
         exec setsid /sbin/getty -L ttyS0 -a root -l /tmp/init -i 115200 $TERM
