@@ -286,8 +286,14 @@ case $$,$STATE in
         ;;
 
     1,CHROOTED)
-        log_info_msg "Start udev"
-        /etc/init.d/udev start
+        log_begin_msg "Starting udev"
+        udev_log=err
+        mount -n -o size=10M,mode=0755 -t devtmpfs devtmpfs /dev
+        udevadm info --cleanup-db
+        udevd --daemon
+        udevadm trigger --action=add
+        udevadm settle
+        log_ok_msg "udev started"
 
         sysctl -w kernel.panic_on_oops=1
 
