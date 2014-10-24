@@ -20,20 +20,20 @@ log_begin_msg () {
 }
 log_ok_msg () {
     printf "${BEGINNING}"
-    echo "$BOLD$GREEN[✔]$NORMAL $1."
+    echo "$GREEN[✔]$NORMAL $1."
 }
 log_warn_msg () {
     printf "${BEGINNING}"
-    echo "$BOLD$YELLOW[⚡]$NORMAL $1!"
+    echo "$YELLOW[⚡]$NORMAL $1!"
 }
 log_error_msg () {
     printf "${BEGINNING}"
-    echo "$BOLD$RED[✘]$NORMAL $1!"
+    echo "$RED[✘]$NORMAL $1!"
     exit 1
 }
 log_info_msg () {
     printf "${BEGINNING}"
-    echo "$BOLD$BLUE[∗]$NORMAL $1."
+    echo "$BLUE[∗]$NORMAL $1."
 }
 
 usage() {
