@@ -386,10 +386,11 @@ EOF
         cd  $HOME
         export SSH_TTY=$(tty)
         if [ -f $HOME/.zshrc ]; then
-            /bin/zsh -i
+            /bin/zsh -i || true
         else
-            /bin/bash -i
+            /bin/bash -i || true
         fi
+        echo b > /proc/sysrq-trigger
         ;;
 
     *,BEGIN)
