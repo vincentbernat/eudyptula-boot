@@ -340,7 +340,7 @@ case $$,$STATE in
         height=
         p=0
         while true; do
-            char="$(timeout --foreground 1s dd bs=1 count=1 status=none || true)"
+            char="$(timeout --foreground 1s dd bs=1 count=1 2> /dev/null || true)"
             case "$p,$char" in
                 "0,;")
                     # End of CSI
