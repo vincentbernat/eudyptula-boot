@@ -195,7 +195,7 @@ start_vm () {
 #!/bin/sh
         exec qemu-system-x86_64 \
         -enable-kvm \
-        -nodefconfig -no-user-config -nodefaults \
+        -nodefconfig -nodefaults \
         -display none \
         \
         -chardev stdio,id=charserial0,signal=off \
