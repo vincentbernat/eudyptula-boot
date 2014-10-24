@@ -161,7 +161,7 @@ setup_initrd () {
     }
 
     # Copy this program
-    cp $PROGNAME ${DESTDIR}/init
+    cp "$PROGNAME" ${DESTDIR}/init
 
     # Create /tmp
     mkdir ${DESTDIR}/tmp
