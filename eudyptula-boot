@@ -3,7 +3,7 @@
 set -e
 
 ESC="$(printf '\033')"
-if [ -t 1 ]; then
+if [ -t 1 ] && [ -z "$noterm" ]; then
     NORMAL="${ESC}[0m"
     RED="${ESC}[31;1m"
     GREEN="${ESC}[32;1m"
@@ -179,6 +179,7 @@ start_vm () {
     # /sys and to mount new partitions over them. This is not the case
     # for 9p2000.L.
     append="uts=$name console=ttyS0 panic=1 TERM=$TERM aufs=$aufs quiet $CMDLINE"
+    [ -t 1 ] || append="$append noterm=1"
     qemu="$QEMU"
     [ x"$NET" != x"1" ] || {
         mac=50:54:00:00:00:42
