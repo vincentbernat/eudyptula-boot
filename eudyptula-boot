@@ -119,19 +119,23 @@ setup_initrd () {
     DESTDIR=$TMP/initrd
     mkdir -p $DESTDIR
 
-    # Copy busybox
-    install -D $(which busybox) ${DESTDIR}/bin/busybox
-    for applet in $(${DESTDIR}/bin/busybox --list); do
-        ln -s busybox ${DESTDIR}/bin/${applet}
-    done
-
-    # Add libs
-    for x in $(ldd $(which busybox) 2> /dev/null | sed -e '
+    # Copy busybox and eventually insmod
+    bins="busybox"
+    busybox --list | grep -Fx insmod || bins="$bins insmod"
+    for bin in $bins; do
+        install -D "$(which $bin)" ${DESTDIR}/bin/$bin
+        for x in $(ldd "$(which $bin)" 2> /dev/null | sed -e '
                /\//!d;
                /linux-gate/d;
                /=>/ {s/.*=>[[:blank:]]*\([^[:blank:]]*\).*/\1/};
                s/[[:blank:]]*\([^[:blank:]]*\) (.*)/\1/' 2>/dev/null); do
-        install -D "$x" "${DESTDIR}/$x"
+            [ -f "${DESTDIR}/$x" ] || install -D "$x" "${DESTDIR}/$x"
+        done
+    done
+
+    # Configure busybox
+    for applet in $(${DESTDIR}/bin/busybox --list); do
+        ln -s busybox ${DESTDIR}/bin/${applet}
     done
 
     # Add modules
