@@ -295,7 +295,7 @@ case $$,$STATE in
         udevadm settle
         log_ok_msg "udev started"
 
-        sysctl -qw kernel.panic_on_oops=1
+        sysctl -q -w kernel.panic_on_oops=1
 
         log_begin_msg "Configure network"
         ip link set up dev lo
