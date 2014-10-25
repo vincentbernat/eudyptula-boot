@@ -48,6 +48,7 @@ Options:
  -r, --root=DIR        Specify the directory to use as the root file system.
  -c, --cmdline=ARGS    Additional parameters for the kernel.
  -e, --exec=CMD        Execute a command instead of spawning a shell.
+ -1, --pid1            Execute the shell or the command as PID 1.
  --qemu=OPTIONS        Additional options for QEMU.
  --net                 Enable network access through the host.
 
@@ -179,7 +180,7 @@ start_vm () {
     # /root is mounted with version 9p2000.u to allow access to /dev,
     # /sys and to mount new partitions over them. This is not the case
     # for 9p2000.L.
-    append="uts=$name console=ttyS0 panic=1 TERM=$TERM aufs=$aufs quiet $CMDLINE"
+    append="uts=$name console=ttyS0 panic=1 TERM=$TERM PID1=$PID1 aufs=$aufs quiet $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
     qemu="$QEMU"
     [ x"$NET" != x"1" ] || {
@@ -189,7 +190,7 @@ start_vm () {
     }
     [ -z "$EXEC" ] || {
         mkdir "$TMP/vm-exec"
-        echo "$EXEC" > "$TMP/vm-exec/auto"
+        echo "exec $EXEC" > "$TMP/vm-exec/auto"
         qemu="$qemu -fsdev local,security_model=passthrough,id=fsdev-exec,path=$TMP/vm-exec,readonly"
         qemu="$qemu -device virtio-9p-pci,id=fs-exec,fsdev=fsdev-exec,mount_tag=execshare"
     }
@@ -320,7 +321,7 @@ case $$,$STATE in
         if mount -t 9p execshare $execshare \
             -o trans=virtio,version=9p2000.L,access=0,ro 2> /dev/null; then
             log_info_msg "Executing requested script"
-            sh "$execshare/auto"
+            ${PID1:+exec} sh "$execshare/auto"
             echo b > /proc/sysrq-trigger
         fi
 
@@ -387,9 +388,9 @@ EOF
         cd  $HOME
         export SSH_TTY=$(tty)
         if [ -f $HOME/.zshrc ]; then
-            /bin/zsh -i || true
+            ${PID1:+exec} /bin/zsh -i || true
         else
-            /bin/bash -i || true
+            ${PID1:+exec} /bin/bash -i || true
         fi
         echo b > /proc/sysrq-trigger
         ;;
@@ -400,8 +401,8 @@ EOF
 
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
-            -o hk:r:c:e: \
-            --longoptions help,kernel:,root:,cmdline:,qemu:,net,exec: \
+            -o hk:r:c:e:1 \
+            --longoptions help,kernel:,root:,cmdline:,qemu:,net,exec:,pid1 \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -434,6 +435,10 @@ EOF
                 -e | --exec)
                     EXEC="$2"
                     shift 2
+                    ;;
+                -1 | --pid1)
+                    PID1=1
+                    shift
                     ;;
                 -- )
                     shift
