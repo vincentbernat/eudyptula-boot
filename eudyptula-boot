@@ -180,7 +180,7 @@ start_vm () {
     # /root is mounted with version 9p2000.u to allow access to /dev,
     # /sys and to mount new partitions over them. This is not the case
     # for 9p2000.L.
-    append="uts=$name console=ttyS0 panic=1 TERM=$TERM PID1=$PID1 aufs=$aufs quiet $CMDLINE"
+    append="uts=$name console=ttyS0 panic=1 TERM=$TERM PID1=$PID1 SHELL=${SHELL:-/bin/bash} aufs=$aufs quiet $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
     qemu="$QEMU"
     [ x"$NET" != x"1" ] || {
@@ -387,11 +387,7 @@ EOF
         log_info_msg "Spawning a shell"
         cd  $HOME
         export SSH_TTY=$(tty)
-        if [ -f $HOME/.zshrc ]; then
-            ${PID1:+exec} /bin/zsh -i || true
-        else
-            ${PID1:+exec} /bin/bash -i || true
-        fi
+        ${PID1:+exec} ${SHELL} -i || true
         echo b > /proc/sysrq-trigger
         ;;
 
