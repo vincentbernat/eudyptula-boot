@@ -58,6 +58,7 @@ EOF
 check_kernel() {
     log_begin_msg "Checking kernel version"
     [ -f "$KERNEL" ] || log_error_msg "Unable to find kernel $KERNEL"
+    [ -r "$KERNEL" ] || log_error_msg "Kernel $KERNEL is not readable"
     VERSION=$(file "$KERNEL" | sed -n 's/.*: Linux kernel x86 boot executable bzImage, version \([^ ]*\) .*/\1/p')
     [ -n "$VERSION" ] || log_error_msg "Unable to determine version for $KERNEL"
     log_ok_msg "Found kernel $VERSION"
