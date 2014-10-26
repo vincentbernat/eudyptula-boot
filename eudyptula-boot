@@ -462,6 +462,8 @@ EOF
             esac
         done
         [ $# -eq 0 ] || log_error_msg "Not accepting any additional argument"
+        [ -z "$RW" ] || [ -n "$ROOT" ] || \
+            log_error_msg "Use of \`--readwrite' without \`--root' is too dangerous"
 
         KERNEL="${KERNEL:-/boot/vmlinuz-$(uname -r)}"
         ROOT="${ROOT:-/}"
