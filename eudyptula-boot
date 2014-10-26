@@ -46,6 +46,7 @@ Options:
  -k, --kernel=BZIMAGE  Specify the kernel to boot. By default, boot on the
                        running kernel.
  -r, --root=DIR        Specify the directory to use as the root file system.
+ -w, --readwrite       Enable read/write access on the provided root file system.
  -c, --cmdline=ARGS    Additional parameters for the kernel.
  -e, --exec=CMD        Execute a command instead of spawning a shell.
  -1, --pid1            Execute the shell or the command as PID 1.
@@ -83,13 +84,15 @@ DEVTMPFS=[ym]
 EOF
         grep -qx "CONFIG_$el" $CONFIG || log_error_msg "Kernel not configured with CONFIG_$el"
     done
-    if grep -qc "CONFIG_AUFS_FS=[ym]" $CONFIG; then
-        log_ok_msg "Kernel configuration checked. AUFS present"
-        aufs=yes
-    else
-        log_warn_msg "Kernel configuration checked. AUFS *not* present"
-        aufs=no
-    fi
+    [ -n "$RW" ] || {
+        if grep -qc "CONFIG_AUFS_FS=[ym]" $CONFIG; then
+            log_ok_msg "Kernel configuration checked. AUFS present"
+            aufs=yes
+        else
+            log_warn_msg "Kernel configuration checked. AUFS *not* present"
+            aufs=no
+        fi
+    }
 
     log_begin_msg "Search for modules"
     for dir in "$(dirname $KERNEL)/lib/modules/$VERSION" "/lib/modules/$VERSION"; do
@@ -181,7 +184,7 @@ start_vm () {
     # /root is mounted with version 9p2000.u to allow access to /dev,
     # /sys and to mount new partitions over them. This is not the case
     # for 9p2000.L.
-    append="uts=$name console=ttyS0 panic=1 TERM=$TERM PID1=$PID1 SHELL=${SHELL:-/bin/bash} aufs=$aufs quiet $CMDLINE"
+    append="uts=$name console=ttyS0 panic=1 TERM=$TERM PID1=$PID1 RW=$RW SHELL=${SHELL:-/bin/bash} aufs=$aufs quiet $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
     qemu="$QEMU"
     [ x"$NET" != x"1" ] || {
@@ -253,26 +256,32 @@ case $$,$STATE in
         mkdir /tmp/target
         mkdir /tmp/target/ro
         mkdir /tmp/target/overlay
-        mount -n -t 9p    rootshare /tmp/target/ro      -o trans=virtio,version=9p2000.u,ro
-        if [ x"$aufs" = x"yes" ]; then
-            mkdir /tmp/target/rw
-            mount -n -t tmpfs tmpfs     /tmp/target/rw      -o rw
-            mount -n -t aufs  aufs      /tmp/target/overlay -o noxino,noatime,dirs=/tmp/target/rw:/tmp/target/ro=ro
+        if [ -z "$RW" ]; then
+            mount -n -t 9p    rootshare /tmp/target/ro      -o trans=virtio,version=9p2000.u,ro
+            if [ x"$aufs" = x"yes" ]; then
+                mkdir /tmp/target/rw
+                mount -n -t tmpfs tmpfs     /tmp/target/rw      -o rw
+                mount -n -t aufs  aufs      /tmp/target/overlay -o noxino,noatime,dirs=/tmp/target/rw:/tmp/target/ro=ro
+            else
+                mount -n --bind /tmp/target/ro /tmp/target/overlay
+            fi
+            log_ok_msg "Root file system setup"
+
+            log_begin_msg "Clean /tmp and /run"
+            for fs in /run /var/run /var/tmp /var/log /tmp; do
+                if [ -d /tmp/target/overlay$fs ] && [ ! -h /tmp/target/overlay$fs ]; then
+                    mount -t tmpfs tmpfs /tmp/target/overlay$fs -o rw,nosuid,nodev
+                fi
+            done
+            log_ok_msg "/tmp, /run and others are clean"
         else
-            mount -n --bind /tmp/target/ro /tmp/target/overlay
+            mount -n -t 9p    rootshare /tmp/target/overlay -o trans=virtio,version=9p2000.u,rw
         fi
+
+        log_begin_msg "Setup /proc and /sys"
         mount -n -t proc  proc /tmp/target/overlay/proc
         mount -n -t sysfs sys  /tmp/target/overlay/sys
-        log_ok_msg "Root file system setup"
-
-        log_begin_msg "Clean /tmp and /run"
-        for fs in /run /var/run /var/tmp /var/log /tmp; do
-            if [ -d /tmp/target/overlay$fs ] && [ ! -h /tmp/target/overlay$fs ]; then
-                mount -t tmpfs tmpfs /tmp/target/overlay$fs -o rw,nosuid,nodev
-            fi
-        done
-        log_ok_msg "/tmp, /run and others are clean"
-
+        log_ok_msg "/proc and /sys setup"
 
         log_begin_msg "Mount /root"
         mount -t 9p homeshare /tmp/target/overlay/root -o trans=virtio,version=9p2000.L,access=0,rw || \
@@ -398,8 +407,8 @@ EOF
 
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
-            -o hk:r:c:e:1 \
-            --longoptions help,kernel:,root:,cmdline:,qemu:,net,exec:,pid1 \
+            -o hk:r:c:e:1w \
+            --longoptions help,kernel:,root:,cmdline:,qemu:,net,exec:,pid1,readwrite \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -416,6 +425,10 @@ EOF
                 -r | --root)
                     ROOT="$(readlink -f "$2")"
                     shift 2
+                    ;;
+                -w | --readwrite)
+                    RW=1
+                    shift
                     ;;
                 -c | --cmdline)
                     CMDLINE="$2"
