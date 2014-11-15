@@ -69,3 +69,9 @@ following command to interact with it:
     $ socat - UNIX:/path/to/vm-eudyptula-console.pipe
     QEMU 2.0.0 monitor - type 'help' for more information
     (qemu)
+
+You can also get something similar to [guestfish][]:
+
+    $ eudyptula-boot --qemu="-drive file=someimage.qcow2,media=disk,if=virtio"
+
+[guestfish]: http://libguestfs.org/guestfish.1.html
