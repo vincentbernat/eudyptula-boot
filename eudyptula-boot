@@ -331,6 +331,10 @@ case $$,$STATE in
         done
         log_ok_msg "Network configured${iface:+ (${iface##*/})}"
 
+        # Switch to the appropriate directory we were in
+        cd $HOME
+        cd ${pwd:-.} 2> /dev/null || true
+
         # Do we have an exec share?
         execshare=$(mktemp -d)
         if mount -t 9p execshare $execshare \
@@ -400,8 +404,6 @@ EOF
         log_ok_msg "System can be halted with halt or reboot"
 
         log_info_msg "Spawning a shell"
-        cd $HOME
-        cd ${pwd:-.} 2> /dev/null || true
         export SSH_TTY=$(tty)
         ${PID1:+exec} ${SHELL} -i || true
         echo b > /proc/sysrq-trigger
