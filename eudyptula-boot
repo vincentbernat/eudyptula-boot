@@ -87,10 +87,9 @@ EOF
     [ -n "$RW" ] || {
         if grep -qc "CONFIG_AUFS_FS=[ym]" $CONFIG; then
             log_ok_msg "Kernel configuration checked. AUFS present"
-            aufs=yes
+            AUFS=1
         else
             log_warn_msg "Kernel configuration checked. AUFS *not* present"
-            aufs=no
         fi
     }
 
@@ -147,7 +146,7 @@ setup_initrd () {
     # Add modules
     [ -z "$MODULES" ] || {
         modules="9pnet_virtio 9p virtio_pci"
-        [ x"$aufs" != x"yes" ] || modules="$modules aufs"
+        [ -z "$AUFS" ] || modules="$modules aufs"
         for mod in $modules; do
             modprobe --all --set-version="${VERSION}" -d ${MODULES}/../../.. \
                 --ignore-install --quiet --show-depends $mod > /dev/null || {
@@ -181,24 +180,26 @@ setup_initrd () {
 start_vm () {
     name=$(echo eudyptula-${VERSION} | tr '.' '-')
     log_info_msg "Start VM $name"
+
+    # Configuration settings
+    mkdir "$TMP/config"
     case $PWD in
-        $HOME*) pwd=/root"${PWD#$HOME}" ;;
-        *) pwd="$PWD"
+        $HOME*) echo /root"${PWD#$HOME}" > "$TMP/config/pwd" ;;
+        *) echo "$PWD" > "$TMP/config/pwd" ;;
     esac
-    append="uts=$name console=ttyS0 panic=1 TERM=$TERM PID1=$PID1 RW=$RW SHELL=${SHELL:-/bin/bash} aufs=$aufs"
-    append="$append pwd=\"$pwd\" quiet $CMDLINE"
+    echo "$TERM"  > "$TMP/config/term"
+    echo "$SHELL" > "$TMP/config/shell"
+    echo "$name"  > "$TMP/config/uts"
+    [ -z "$PID1" ] || touch "$TMP/config/pid1"
+    [ -z "$EXEC" ] || echo "exec $EXEC" > "$TMP/config/exec"
+
+    append="console=ttyS0 panic=1 RW=$RW AUFS=$AUFS quiet $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
     qemu="$QEMU"
     [ x"$NET" != x"1" ] || {
         mac=50:54:00:00:00:42
         qemu="$qemu -net nic,model=virtio,macaddr=$mac,vlan=1"
         qemu="$qemu -net user,vlan=1,name=internet"
-    }
-    [ -z "$EXEC" ] || {
-        mkdir "$TMP/vm-exec"
-        echo "exec $EXEC" > "$TMP/vm-exec/auto"
-        qemu="$qemu -fsdev local,security_model=passthrough,id=fsdev-exec,path=$TMP/vm-exec,readonly"
-        qemu="$qemu -device virtio-9p-pci,id=fs-exec,fsdev=fsdev-exec,mount_tag=execshare"
     }
     # /root is mounted with version 9p2000.u to allow access to /dev,
     # /sys and to mount new partitions over them. This is not the case
@@ -224,6 +225,8 @@ start_vm () {
         -device virtio-9p-pci,id=fs-home,fsdev=fsdev-home,mount_tag=homeshare \
         -fsdev local,security_model=none,id=fsdev-modules,path=${MODULES}/..,readonly \
         -device virtio-9p-pci,id=fs-modules,fsdev=fsdev-modules,mount_tag=moduleshare \
+        -fsdev local,security_model=passthrough,id=fsdev-config,path=$TMP/config,readonly \
+        -device virtio-9p-pci,id=fs-config,fsdev=fsdev-config,mount_tag=configshare \
         \
         -gdb unix:$TMP/vm-$name-gdb.pipe,server,nowait \
         -no-reboot \
@@ -247,7 +250,6 @@ case $$,$STATE in
     1,BEGIN)
         # In initrd
         log_info_msg "initrd started"
-        hostname ${uts}
         export PATH=/usr/local/bin:/usr/bin:/bin:/sbin:/usr/local/sbin:/usr/sbin
         export HOME=/root
 
@@ -263,7 +265,7 @@ case $$,$STATE in
         mkdir /tmp/target/overlay
         if [ -z "$RW" ]; then
             mount -n -t 9p    rootshare /tmp/target/ro      -o trans=virtio,version=9p2000.u,ro
-            if [ x"$aufs" = x"yes" ]; then
+            if [ -n "$AUFS" ]; then
                 mkdir /tmp/target/rw
                 mount -n -t tmpfs tmpfs     /tmp/target/rw      -o rw
                 mount -n -t aufs  aufs      /tmp/target/overlay -o noxino,noatime,dirs=/tmp/target/rw:/tmp/target/ro=ro
@@ -297,6 +299,12 @@ case $$,$STATE in
             log_error_msg "Unable to mount /lib/modules"
         log_ok_msg "/root and /lib/modules mounted"
 
+        log_begin_msg "Load configuration"
+        mkdir /tmp/target/overlay/tmp/config
+        mount -t 9p configshare /tmp/target/overlay/tmp/config -o trans=virtio,version=9p2000.L,access=0,ro || \
+            log_error_msg "Unable to load configuration"
+        log_ok_msg "Configuration loaded"
+
         log_info_msg "Change root"
         export STATE=CHROOTED
         cp /init /tmp/target/overlay/tmp
@@ -304,6 +312,12 @@ case $$,$STATE in
         ;;
 
     1,CHROOTED)
+        # Various config stuff
+        hostname "$(cat /tmp/config/uts)"
+        [ ! -f /tmp/config/pid1 ] || export PID1=1
+        export TERM=$(cat /tmp/config/term)
+        export SHELL=$(cat /tmp/config/shell)
+        
         log_begin_msg "Starting udev"
         udev_log=err
         mount -n -o size=10M,mode=0755 -t devtmpfs devtmpfs /dev
@@ -333,14 +347,11 @@ case $$,$STATE in
 
         # Switch to the appropriate directory we were in
         cd $HOME
-        cd ${pwd:-.} 2> /dev/null || true
+        cd $(cat /tmp/config/pwd) 2> /dev/null || true
 
         # Do we have an exec share?
-        execshare=$(mktemp -d)
-        if mount -t 9p execshare $execshare \
-            -o trans=virtio,version=9p2000.L,access=0,ro 2> /dev/null; then
-            log_info_msg "Executing requested script"
-            ${PID1:+exec} sh "$execshare/auto"
+        if [ -f /tmp/config/exec ]; then
+            ${PID1:+exec} sh /tmp/config/exec
             echo b > /proc/sysrq-trigger
         fi
 
