@@ -181,9 +181,6 @@ setup_initrd () {
 start_vm () {
     name=$(echo eudyptula-${VERSION} | tr '.' '-')
     log_info_msg "Start VM $name"
-    # /root is mounted with version 9p2000.u to allow access to /dev,
-    # /sys and to mount new partitions over them. This is not the case
-    # for 9p2000.L.
     case $PWD in
         $HOME*) pwd=/root"${PWD#$HOME}" ;;
         *) pwd="$PWD"
@@ -203,6 +200,9 @@ start_vm () {
         qemu="$qemu -fsdev local,security_model=passthrough,id=fsdev-exec,path=$TMP/vm-exec,readonly"
         qemu="$qemu -device virtio-9p-pci,id=fs-exec,fsdev=fsdev-exec,mount_tag=execshare"
     }
+    # /root is mounted with version 9p2000.u to allow access to /dev,
+    # /sys and to mount new partitions over them. This is not the case
+    # for 9p2000.L.
     cat <<EOF > "$TMP/vm-$name.exec"
 #!/bin/sh
         exec qemu-system-x86_64 \
