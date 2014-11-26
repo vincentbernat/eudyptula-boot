@@ -53,7 +53,7 @@ log_info_msg () {
 usage() {
     >&2 cat <<EOF
 Usage: $PROGNAME [ options ]
-Boot a Linux kernel using the root filesystem of the host as a base.
+Boot any Linux kernel using host root filesystem as a base.
 
 Options:
 
