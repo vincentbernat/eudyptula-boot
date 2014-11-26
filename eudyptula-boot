@@ -416,6 +416,9 @@ EOF
 
         log_info_msg "Spawning a shell"
         export SSH_TTY=$(tty)
+        for SHELL in $SHELL /bin/bash /bin/sh; do
+            [ ! -x $SHELL ] || break
+        done
         ${PID1:+exec} ${SHELL} -i || true
         echo b > /proc/sysrq-trigger
         ;;
