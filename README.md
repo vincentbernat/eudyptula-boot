@@ -18,10 +18,10 @@ on AUFS and 9P to build the root filesystem from the running system.
 Usage
 -----
 
-You need to have a kernel with AUFS enabled. This is not the case of
-vanilla kernels. Ubuntu and Debian kernels are patched to support
-AUFS. If you need to develop from a vanilla kernel, you can either
-apply AUFS patches or use the [AUFS git tree][].
+It is preferable to have a kernel with AUFS enabled. This is not the
+case of vanilla kernels. Ubuntu and Debian kernels are patched to
+support AUFS. If you need to develop from a vanilla kernel, you can
+either apply AUFS patches or use the [AUFS git tree][].
 
 [AUFS git tree]: git://github.com/sfjro/aufs3-linux.git
 
