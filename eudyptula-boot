@@ -129,10 +129,14 @@ EOF
     [ -n "$RW" ] || {
         if grep -qc "CONFIG_AUFS_FS=[ym]" $CONFIG; then
             log_ok_msg "Kernel configuration checked. AUFS present"
-            AUFS=1
-        else
-            log_warn_msg "Kernel configuration checked. AUFS *not* present"
+            UNION="aufs"
         fi
+        if grep -qc "CONFIG_OVERLAYFS_FS=[ym]" $CONFIG; then
+            log_ok_msg "Kernel configuration checked. overlayfs present"
+            UNION="${UNION}${UNION+ }overlayfs"
+        fi
+        [ -n "$UNION" ] || \
+            log_warn_msg "Kernel configuration checked. Neither overlayfs nor AUFS present"
     }
 
     log_begin_msg "Search for modules"
@@ -193,7 +197,7 @@ setup_initrd () {
     # Add modules
     [ -z "$MODULES" ] || {
         modules="9pnet_virtio 9p virtio_pci"
-        [ -z "$AUFS" ] || modules="$modules aufs"
+        [ -z "$UNION" ] || modules="$modules $UNION"
         for mod in $modules; do
             modprobe --all --set-version="${VERSION}" -d ${MODULES}/../../.. \
                 --ignore-install --quiet --show-depends $mod > /dev/null || {
@@ -239,7 +243,7 @@ start_vm () {
     echo "$name"  > "$TMP/config/uts"
     [ -z "$PID1" ] || touch "$TMP/config/pid1"
     [ -z "$RW" ]   || touch "$TMP/config/rw"
-    [ -z "$AUFS" ] || touch "$TMP/config/aufs"
+    [ -z "$UNION" ] || echo "$UNION" > "$TMP/config/union"
     [ $# -eq 0 ] || echo "exec" "$@" > "$TMP/config/exec"
 
     append="console=ttyS0 panic=1 quiet $CMDLINE"
@@ -317,7 +321,7 @@ case $$,$STATE in
         hostname "$(cat /tmp/config/uts)"
         [ ! -f /tmp/config/pid1 ] || export PID1=1
         [ ! -f /tmp/config/rw ]   || export RW=1
-        [ ! -f /tmp/config/aufs ] || export AUFS=1
+        [ ! -f /tmp/config/union ] || export UNION="$(cat /tmp/config/union)"
         export TERM=$(cat /tmp/config/term)
         export SHELL=$(cat /tmp/config/shell)
         log_ok_msg "Configuration loaded"
@@ -327,17 +331,27 @@ case $$,$STATE in
         mkdir /tmp/target/ro
         mkdir /tmp/target/overlay
         if [ -z "$RW" ]; then
-            mount -n -t 9p    rootshare /tmp/target/ro      -o trans=virtio,version=9p2000.u,ro
-            if [ -n "$AUFS" ]; then
-                mkdir /tmp/target/rw
-                mount -n -t tmpfs tmpfs     /tmp/target/rw      -o rw
-                mount -n -t aufs  aufs      /tmp/target/overlay -o noxino,noatime,dirs=/tmp/target/rw:/tmp/target/ro=ro 2> /dev/null || {
-                    log_warn_msg "Unable to use AUFS"
-                    mount -n --bind /tmp/target/ro /tmp/target/overlay
-                }
-            else
+            mkdir /tmp/target/rw
+            mount -n -t 9p rootshare /tmp/target/ro -o trans=virtio,version=9p2000.u,ro
+            mount -n -t tmpfs tmpfs  /tmp/target/rw -o rw
+            set -- $UNION
+            while [ $# -gt 0 ]; do
+                case $1 in
+                    aufs)
+                        ! mount -n -t aufs aufs /tmp/target/overlay \
+                          -o noxino,noatime,dirs=/tmp/target/rw:/tmp/target/ro=ro 2> /dev/null || break
+                        log_warn_msg "Unable to use AUFS"
+                        ;;
+                    overlayfs)
+                        ! mount -n -t overlayfs overlayfs /tmp/target/overlay \
+                          -o lowerdir=/tmp/target/ro,upperdir=/tmp/target/rw,noatime 2> /dev/null || break
+                        log_warn_msg "Unable to use overlayfs"
+                        ;;
+                esac
+                shift
+            done
+            [ $# -gt 0 ] || \
                 mount -n --bind /tmp/target/ro /tmp/target/overlay
-            fi
             log_ok_msg "Root file system setup"
 
             log_begin_msg "Clean /tmp and /run"
