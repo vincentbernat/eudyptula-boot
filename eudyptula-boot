@@ -531,6 +531,7 @@ EOF
 
         KERNEL="${KERNEL:-/boot/vmlinuz-$(uname -r)}"
         ROOT="${ROOT:-/}"
+        PATH="$PATH":/usr/local/sbin:/usr/sbin:/sbin
 
         check_kernel
         check_dependencies
