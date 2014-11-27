@@ -315,7 +315,10 @@ case $$,$STATE in
             if [ -n "$AUFS" ]; then
                 mkdir /tmp/target/rw
                 mount -n -t tmpfs tmpfs     /tmp/target/rw      -o rw
-                mount -n -t aufs  aufs      /tmp/target/overlay -o noxino,noatime,dirs=/tmp/target/rw:/tmp/target/ro=ro
+                mount -n -t aufs  aufs      /tmp/target/overlay -o noxino,noatime,dirs=/tmp/target/rw:/tmp/target/ro=ro 2> /dev/null || {
+                    log_warn_msg "Unable to use AUFS"
+                    mount -n --bind /tmp/target/ro /tmp/target/overlay
+                }
             else
                 mount -n --bind /tmp/target/ro /tmp/target/overlay
             fi
