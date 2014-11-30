@@ -66,7 +66,7 @@ Options:
  -1, --pid1            Execute the shell or the command as PID 1.
  --qemu=OPTIONS        Additional options for QEMU.
  --net                 Enable network access through the host.
- --force               Allow running as root (dangerous)
+ --force               Allow running dangerous configuration.
 
 EOF
 }
@@ -539,7 +539,7 @@ EOF
                     shift
                     ;;
                 --force)
-                    DOROOT=1
+                    DANGEROUS=1
                     shift
                     ;;
                 -- )
@@ -553,9 +553,9 @@ EOF
                     ;;
             esac
         done
-        [ -z "$RW" ] || [ -n "$ROOT" ] || \
+        [ -n "$DANGEROUS" ] || [ -z "$RW" ] || [ -n "$ROOT" ] || \
             log_error_msg "Use of \`--readwrite' without \`--root' is too dangerous"
-        [ $(id -u) != 0 ] || [ -n "$DOROOT" ] || \
+        [ -n "$DANGEROUS" ] || [ $(id -u) != 0 ] || \
             log_error_msg "You should not run this as root"
 
         KERNEL="${KERNEL:-/boot/vmlinuz-$(uname -r)}"
