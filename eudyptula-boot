@@ -66,6 +66,7 @@ Options:
  -1, --pid1            Execute the shell or the command as PID 1.
  --qemu=OPTIONS        Additional options for QEMU.
  --net                 Enable network access through the host.
+ --force               Allow running as root (dangerous)
 
 EOF
 }
@@ -496,12 +497,10 @@ EOF
 
     *,BEGIN)
         # Initial state
-        [ $(id -u) != 0 ] || log_error_msg "You should not run this as root"
-
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
             -o hk:r:c:1w \
-            --longoptions help,kernel:,root:,cmdline:,qemu:,net,pid1,readwrite \
+            --longoptions help,kernel:,root:,cmdline:,qemu:,net,pid1,readwrite,force \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -539,6 +538,10 @@ EOF
                     PID1=1
                     shift
                     ;;
+                --force)
+                    DOROOT=1
+                    shift
+                    ;;
                 -- )
                     shift
                     break
@@ -552,6 +555,8 @@ EOF
         done
         [ -z "$RW" ] || [ -n "$ROOT" ] || \
             log_error_msg "Use of \`--readwrite' without \`--root' is too dangerous"
+        [ $(id -u) != 0 ] || [ -n "$DOROOT" ] || \
+            log_error_msg "You should not run this as root"
 
         KERNEL="${KERNEL:-/boot/vmlinuz-$(uname -r)}"
         ROOT="${ROOT:-/}"
