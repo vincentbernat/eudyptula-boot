@@ -18,17 +18,17 @@ on AUFS and 9P to build the root filesystem from the running system.
 Usage
 -----
 
-It is preferable to have a kernel with AUFS enabled. This is not the
-case of vanilla kernels. Ubuntu and Debian kernels are patched to
-support AUFS. If you need to develop from a vanilla kernel, you can
-either apply AUFS patches or use the [AUFS git tree][].
+It is preferable to have a kernel with AUFS or OverlayFS
+enabled. Ubuntu and Debian kernels are patched to support AUFS. Since
+3.18, vanilla kernels have OverlayFS built-in. Ubuntu kernels also
+come with OverlayFS support. Check you have one of those options:
 
-[AUFS git tree]: git://github.com/sfjro/aufs3-linux.git
+    CONFIG_AUFS_FS=y
+    CONFIG_OVERLAYFS_FS=y
 
 Ensure you have the following options enabled (as a module or builtin):
 
     CONFIG_9P_FS=y
-    CONFIG_AUFS_FS=y
     CONFIG_NET_9P=y
     CONFIG_NET_9P_VIRTIO=y
     CONFIG_VIRTIO=y
