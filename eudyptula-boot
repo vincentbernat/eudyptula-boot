@@ -128,7 +128,7 @@ EOF
         grep -qx "CONFIG_$el" $CONFIG || log_error_msg "Kernel not configured with CONFIG_$el"
     done
     [ -n "$RW" ] || {
-        if grep -qc "CONFIG_OVERLAYFS_FS=[ym]" $CONFIG; then
+        if grep -qc "CONFIG_OVERLAY_FS=[ym]" $CONFIG; then
             log_ok_msg "Kernel configuration checked. overlayfs present"
             UNION="${UNION}${UNION+ }overlayfs"
         fi
