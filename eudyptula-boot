@@ -473,19 +473,6 @@ case $$,$STATE in
         stty echo
         log_ok_msg "Terminal size is $(tput cols)x$(tput lines)"
 
-        log_begin_msg "Setup additional commands"
-        mkdir /tmp/tools
-        export PATH=$PATH:/tmp/tools
-        cat <<EOF > /tmp/tools/reboot
-#!/bin/sh
-echo b > /proc/sysrq-trigger
-EOF
-        cat <<EOF > /tmp/tools/halt
-#!/bin/sh
-echo b > /proc/sysrq-trigger
-EOF
-        log_ok_msg "System can be halted with halt or reboot"
-
         log_info_msg "Spawning a shell"
         export SSH_TTY=$(tty)
         for SHELL in $SHELL /bin/bash /bin/sh; do
