@@ -279,7 +279,7 @@ start_vm () {
         -device virtio-9p-pci,id=fs-home,fsdev=fsdev-home,mount_tag=homeshare \
         -fsdev local,security_model=none,id=fsdev-modules,path=${MODULES}/..,readonly \
         -device virtio-9p-pci,id=fs-modules,fsdev=fsdev-modules,mount_tag=moduleshare \
-        -fsdev local,security_model=passthrough,id=fsdev-config,path=$TMP/config,readonly \
+        -fsdev local,security_model=passthrough,id=fsdev-config,path=$TMP/config \
         -device virtio-9p-pci,id=fs-config,fsdev=fsdev-config,mount_tag=configshare \
         \
         -gdb unix:$TMP/vm-$name-gdb.pipe,server,nowait \
@@ -295,7 +295,7 @@ EOF
     log_info_msg "ttyS1 listening on      $TMP/vm-$name-serial.pipe"
     chmod +x "$TMP/vm-$name.exec"
     "$TMP/vm-$name.exec"
-    log_info_msg "VM has terminated with status $?"
+    log_info_msg "VM terminated"
 }
 
 # FSM
@@ -315,7 +315,7 @@ case $$,$STATE in
         log_begin_msg "Load configuration"
         mount -n -t tmpfs tmpfs /tmp -o rw
         mkdir /tmp/config
-        mount -t 9p configshare /tmp/config -o trans=virtio,version=9p2000.L,access=0,ro || \
+        mount -t 9p configshare /tmp/config -o trans=virtio,version=9p2000.u,access=0,rw || \
             log_error_msg "Unable to load configuration"
 
         # Various config stuff
@@ -423,7 +423,9 @@ case $$,$STATE in
 
         # Do we have an exec share?
         if [ -f /tmp/config/exec ]; then
-            ${PID1:+exec} sh /tmp/config/exec
+            ret=0
+            ${PID1:+exec} sh /tmp/config/exec || ret=$?
+            echo $ret > /tmp/config/ret
             echo b > /proc/sysrq-trigger
         fi
 
@@ -478,7 +480,9 @@ case $$,$STATE in
         for SHELL in $SHELL /bin/bash /bin/sh; do
             [ ! -x $SHELL ] || break
         done
-        ${PID1:+exec} ${SHELL} -i || true
+        ret=0
+        ${PID1:+exec} ${SHELL} -i || ret=$?
+        echo $ret > /tmp/config/ret
         echo b > /proc/sysrq-trigger
         ;;
 
@@ -554,6 +558,9 @@ case $$,$STATE in
         setup_tmp
         setup_initrd
         start_vm "$@"
+        ret=255
+        [ ! -f $TMP/config/ret ] || ret="$(cat $TMP/config/ret)"
         rm -rf $TMP || true
+        exit $ret
         ;;
 esac
