@@ -490,7 +490,7 @@ case $$,$STATE in
         # Initial state
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
-            -o hk:r:c:1w \
+            -o +hk:r:c:1w \
             --longoptions help,kernel:,root:,cmdline:,qemu:,net,pid1,readwrite,force \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
