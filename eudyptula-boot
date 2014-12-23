@@ -441,7 +441,7 @@ case $$,$STATE in
         # block!
         stty -echo
         stty raw
-        printf '[18t'
+        printf '\033[18t'
         width=
         height=
         p=0
