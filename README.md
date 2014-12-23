@@ -15,6 +15,10 @@ on AUFS and 9P to build the root filesystem from the running system.
 [Eudyptula]: http://en.wikipedia.org/wiki/Eudyptula
 [challenge for the Linux kernel]: http://eudyptula-challenge.org/
 
+Also see
+[this blog post](http://vincent.bernat.im/en/blog/2014-eudyptula-boot.html)
+for a quick presentation of this tool.
+
 Usage
 -----
 
