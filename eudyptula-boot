@@ -436,9 +436,6 @@ case $$,$STATE in
 
     1,GETTY)
         log_begin_msg "Setup terminal size"
-        # We are guaranteed to be in a tmux session, so we will get an
-        # answer to the escape code we send. Otherwise, we may just
-        # block!
         stty -echo
         stty raw
         printf '\033[18t'
@@ -469,6 +466,7 @@ case $$,$STATE in
                     width="$width$char"
                     ;;
             esac
+            [ x"$char" != x ] || break
             [ x"$p" != x"3" ] || break
         done
         stty -raw
