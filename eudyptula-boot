@@ -397,6 +397,8 @@ case $$,$STATE in
         udevd --daemon
         udevadm trigger --action=add
         udevadm settle
+        mkdir -p /dev/pts
+        mount -t devpts devpts /dev/pts 2> /dev/null || true
         log_ok_msg "udev started"
 
         sysctl -q -w kernel.panic_on_oops=1
