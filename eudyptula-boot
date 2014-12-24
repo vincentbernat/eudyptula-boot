@@ -29,16 +29,22 @@ else
 fi
 
 log_begin_msg () {
-    printf "${BEGINNING}"
-    printf "${BLUE}[…]${NORMAL} $1${BLUE}...${NORMAL} "
+    [ -n "$SILENT" ] || {
+        printf "${BEGINNING}"
+        printf "${BLUE}[…]${NORMAL} $1${BLUE}...${NORMAL} "
+    }
 }
 log_ok_msg () {
-    printf "${BEGINNING}"
-    echo "$GREEN[✔]$NORMAL $1."
+    [ -n "$SILENT" ] || {
+        printf "${BEGINNING}"
+        echo "$GREEN[✔]$NORMAL $1."
+    }
 }
 log_warn_msg () {
-    printf "${BEGINNING}"
-    echo "$YELLOW[⚡]$NORMAL $1!"
+    [ -n "$SILENT" ] || {
+        printf "${BEGINNING}"
+        echo "$YELLOW[⚡]$NORMAL $1!"
+    }
 }
 log_error_msg () {
     printf "${BEGINNING}"
@@ -46,8 +52,10 @@ log_error_msg () {
     exit 1
 }
 log_info_msg () {
-    printf "${BEGINNING}"
-    echo "$BLUE[∗]$NORMAL $1."
+    [ -n "$SILENT" ] || {
+        printf "${BEGINNING}"
+        echo "$BLUE[∗]$NORMAL $1."
+    }
 }
 
 usage() {
@@ -57,6 +65,7 @@ Boot any Linux kernel using host root filesystem as a base.
 
 Options:
 
+ -s, --silent          Makes $PROGNAME silent.
  -k, --kernel=BZIMAGE  Specify the kernel to boot. By default, boot on the
                        running kernel.
  -r, --root=DIR        Specify the directory to use as the root file system.
@@ -249,6 +258,7 @@ start_vm () {
 
     append="console=ttyS0 panic=1 quiet $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
+    [ -z "$SILENT" ] || append="$append SILENT=1"
     qemu="$QEMU"
     [ x"$NET" != x"1" ] || {
         mac=50:54:00:00:00:42
@@ -490,8 +500,8 @@ case $$,$STATE in
         # Initial state
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
-            -o +hk:r:c:1w \
-            --longoptions help,kernel:,root:,cmdline:,qemu:,net,pid1,readwrite,force \
+            -o +hsk:r:c:1w \
+            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,net,pid1,readwrite,force \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -500,6 +510,10 @@ case $$,$STATE in
                 -h | --help)
                     usage
                     exit 0
+                    ;;
+                -s | --silent)
+                    SILENT=1
+                    shift
                     ;;
                 -k | --kernel)
                     KERNEL="$(readlink -f "$2")"
