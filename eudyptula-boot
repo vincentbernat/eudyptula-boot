@@ -258,7 +258,7 @@ start_vm () {
 
     append="console=ttyS0 panic=1 quiet $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
-    [ -z "$SILENT" ] || append="$append SILENT=1"
+    [ -z "$SILENT" ] || append="$append SILENT=1 loglevel=3"
     qemu="$QEMU"
     [ x"$NET" != x"1" ] || {
         mac=50:54:00:00:00:42
