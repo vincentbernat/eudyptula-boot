@@ -28,6 +28,7 @@ enabled. Ubuntu and Debian kernels are patched to support AUFS. Since
 come with OverlayFS support. Check you have one of those options:
 
     CONFIG_AUFS_FS=y
+    CONFIG_OVERLAY_FS=y
     CONFIG_OVERLAYFS_FS=y
 
 Ensure you have the following options enabled (as a module or builtin):
