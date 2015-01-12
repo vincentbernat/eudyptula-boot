@@ -358,7 +358,15 @@ case $$,$STATE in
                           -o noxino,noatime,dirs=/tmp/target/rw/upperdir:/tmp/target/ro=ro 2> /dev/null || break
                         log_warn_msg "Unable to use AUFS"
                         ;;
-                    overlayfs|overlay)
+                    overlayfs)
+                        # Pre-3.18
+                        ! mount -n -t $1 overlayfs /tmp/target/overlay \
+                          -o lowerdir=/tmp/target/ro,upperdir=/tmp/target/rw/upperdir,noatime \
+                          2> /dev/null || break
+                        log_warn_msg "Unable to use overlayfs"
+                        ;;
+                    overlay)
+                        # 3.18+
                         ! mount -n -t $1 overlayfs /tmp/target/overlay \
                           -o lowerdir=/tmp/target/ro,upperdir=/tmp/target/rw/upperdir,workdir=/tmp/target/rw/workdir,noatime \
                           2> /dev/null || break
