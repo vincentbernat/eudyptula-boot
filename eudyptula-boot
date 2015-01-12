@@ -348,17 +348,20 @@ case $$,$STATE in
             mkdir /tmp/target/rw
             mount -n -t 9p rootshare /tmp/target/ro -o trans=virtio,version=9p2000.u,ro
             mount -n -t tmpfs tmpfs  /tmp/target/rw -o rw
+            mkdir /tmp/target/rw/workdir
+            mkdir /tmp/target/rw/upperdir
             set -- $UNION
             while [ $# -gt 0 ]; do
                 case $1 in
                     aufs)
                         ! mount -n -t aufs aufs /tmp/target/overlay \
-                          -o noxino,noatime,dirs=/tmp/target/rw:/tmp/target/ro=ro 2> /dev/null || break
+                          -o noxino,noatime,dirs=/tmp/target/rw/upperdir:/tmp/target/ro=ro 2> /dev/null || break
                         log_warn_msg "Unable to use AUFS"
                         ;;
                     overlayfs|overlay)
                         ! mount -n -t $1 overlayfs /tmp/target/overlay \
-                          -o lowerdir=/tmp/target/ro,upperdir=/tmp/target/rw,noatime 2> /dev/null || break
+                          -o lowerdir=/tmp/target/ro,upperdir=/tmp/target/rw/upperdir,workdir=/tmp/target/rw/workdir,noatime \
+                          2> /dev/null || break
                         log_warn_msg "Unable to use overlayfs"
                         ;;
                 esac
