@@ -421,8 +421,15 @@ case $$,$STATE in
                 ip link set up dev "${iface##*/}"
                 ip addr add 10.0.2.14/24 dev "${iface##*/}"
                 ip route add default via 10.0.2.2
-                echo "nameserver 10.0.2.3" > /tmp/resolv.conf
-                mount --bind /tmp/resolv.conf /etc/resolv.conf
+                if [ -L /etc/resolv.conf ]; then
+                    # /etc/resolv.conf is a symlink, assume it points to /run
+                    mkdir -p "$(dirname "$(readlink -m /etc/resolv.conf)")"
+                    echo "nameserver 10.0.2.3" > "$(readlink -m /etc/resolv.conf)"
+                else
+                    # root may be read-only, use a bind mount
+                    echo "nameserver 10.0.2.3" > /tmp/resolv.conf
+                    mount --bind /tmp/resolv.conf /etc/resolv.conf
+                fi
                 break
             fi
             iface=
