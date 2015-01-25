@@ -418,11 +418,10 @@ case $$,$STATE in
         udev_log=err
         mount -n -o size=10M,mode=0755 -t devtmpfs devtmpfs /dev
         udevadm info --cleanup-db
-        if [ -x /lib/systemd/systemd-udevd ]; then
-            /lib/systemd/systemd-udevd --daemon
-        else
-            udevd --daemon
-        fi
+        for udev in /lib/systemd/systemd-udevd /usr/lib/systemd/systemd-udevd $(which udevd 2> /dev/null); do
+            [ ! -x $udev ] || break
+        done
+        $udev --daemon
         udevadm trigger --action=add
         udevadm settle
         mkdir -p /dev/pts
