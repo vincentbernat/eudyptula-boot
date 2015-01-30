@@ -71,7 +71,6 @@ Options:
  -r, --root=DIR        Specify the directory to use as the root file system.
  -w, --readwrite       Enable read/write access on the provided root file system.
  -c, --cmdline=ARGS    Additional parameters for the kernel.
- -e, --exec=CMD        Execute a command instead of spawning a shell.
  -1, --pid1            Execute the shell or the command as PID 1.
  --qemu=OPTIONS        Additional options for QEMU.
  --net                 Enable network access through the host.
