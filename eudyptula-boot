@@ -60,7 +60,7 @@ log_info_msg () {
 
 usage() {
     >&2 cat <<EOF
-Usage: $PROGNAME [ options ]
+Usage: $PROGNAME [ options ] [ -- command ]
 Boot any Linux kernel using host root filesystem as a base.
 
 Options:
