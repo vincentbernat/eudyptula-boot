@@ -72,6 +72,7 @@ Options:
  -w, --readwrite       Enable read/write access on the provided root file system.
  -c, --cmdline=ARGS    Additional parameters for the kernel.
  -1, --pid1            Execute the shell or the command as PID 1.
+ -m, --mem=QTY         How much memory to allocate for the VM.
  --qemu=OPTIONS        Additional options for QEMU.
  --net                 Enable network access through the host.
  --force               Allow running dangerous configuration.
@@ -258,15 +259,20 @@ start_vm () {
     [ -z "$UNION" ] || echo "$UNION" > "$TMP/config/union"
     [ $# -eq 0 ] || echo "exec" "$@" > "$TMP/config/exec"
 
+    # Kernel command-line
     append="console=ttyS0 panic=1 quiet $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
     [ -z "$SILENT" ] || append="$append SILENT=1 loglevel=3"
-    qemu="$QEMU"
+
+    # qemu command-line
+    qemu=""
+    [ -z "$MEM" ] || qemu="$qemu -m $MEM"
     [ x"$NET" != x"1" ] || {
         mac=50:54:00:00:00:42
         qemu="$qemu -net nic,model=virtio,macaddr=$mac,vlan=1"
         qemu="$qemu -net user,vlan=1,name=internet"
     }
+    qemu="$qemu $QEMU"
     # /root is mounted with version 9p2000.u to allow access to /dev,
     # /sys and to mount new partitions over them. This is not the case
     # for 9p2000.L.
@@ -523,8 +529,8 @@ case $$,$STATE in
         # Initial state
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
-            -o +hsk:r:c:1w \
-            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,net,pid1,readwrite,force \
+            -o +hsk:r:c:m:1w \
+            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,net,pid1,readwrite,force \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -556,6 +562,10 @@ case $$,$STATE in
                     ;;
                 --qemu)
                     QEMU="$2"
+                    shift 2
+                    ;;
+                -m | --mem)
+                    MEM="$2"
                     shift 2
                     ;;
                 --net)
