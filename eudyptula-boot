@@ -415,7 +415,7 @@ case $$,$STATE in
         log_info_msg "Change root"
         export STATE=CHROOTED
         cp /init /tmp/target/overlay/tmp
-        exec chroot /tmp/target/overlay /tmp/init
+        exec switch_root /tmp/target/overlay /tmp/init
         ;;
 
     1,CHROOTED)
