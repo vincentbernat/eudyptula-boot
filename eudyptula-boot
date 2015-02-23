@@ -383,14 +383,6 @@ case $$,$STATE in
             [ $# -gt 0 ] || \
                 mount -n --bind /tmp/target/ro /tmp/target/overlay
             log_ok_msg "Root file system setup"
-
-            log_begin_msg "Clean /tmp and /run"
-            for fs in /run /var/run /var/tmp /var/log /tmp; do
-                if [ -d /tmp/target/overlay$fs ] && [ ! -h /tmp/target/overlay$fs ]; then
-                    mount -t tmpfs tmpfs /tmp/target/overlay$fs -o rw,nosuid,nodev
-                fi
-            done
-            log_ok_msg "/tmp, /run and others are clean"
         else
             mount -n -t 9p    rootshare /tmp/target/overlay -o trans=virtio,version=9p2000.u,rw
         fi
@@ -408,6 +400,13 @@ case $$,$STATE in
         mount -t 9p moduleshare /tmp/target/overlay/lib/modules -o trans=virtio,version=9p2000.L,access=0,ro || \
             log_error_msg "Unable to mount /lib/modules"
         log_ok_msg "/root and /lib/modules mounted"
+        log_begin_msg "Clean /tmp and /run"
+        for fs in /run /var/run /var/tmp /var/log /tmp; do
+            if [ -d /tmp/target/overlay$fs ] && [ ! -h /tmp/target/overlay$fs ]; then
+                mount -t tmpfs tmpfs /tmp/target/overlay$fs -o rw,nosuid,nodev
+            fi
+        done
+        log_ok_msg "/tmp, /run and others are clean"
 
         mkdir /tmp/target/overlay/tmp/config
         mount --bind /tmp/config /tmp/target/overlay/tmp/config
