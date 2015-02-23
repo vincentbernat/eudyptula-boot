@@ -172,8 +172,8 @@ check_kernel() {
 
 check_dependencies() {
     log_begin_msg "Checking if dependencies are present"
-    which busybox 2> /dev/null > /dev/null || log_error_msg "Busybox is not installed"
-    which qemu-system-x86_64 2> /dev/null > /dev/null || log_error_msg "qemu-system is not installed"
+    command -v busybox 2> /dev/null > /dev/null || log_error_msg "Busybox is not installed"
+    command -v qemu-system-x86_64 2> /dev/null > /dev/null || log_error_msg "qemu-system is not installed"
     log_ok_msg "All dependencies are met"
 }
 
@@ -192,8 +192,8 @@ setup_initrd () {
     bins="busybox"
     busybox --list | grep -qFx insmod || bins="$bins insmod"
     for bin in $bins; do
-        install -D "$(which $bin)" ${DESTDIR}/bin/$bin
-        for x in $(ldd "$(which $bin)" 2> /dev/null | sed -e '
+        install -D "$(command -v $bin)" ${DESTDIR}/bin/$bin
+        for x in $(ldd "$(command -v $bin)" 2> /dev/null | sed -e '
                /\//!d;
                /linux-gate/d;
                /=>/ {s/.*=>[[:blank:]]*\([^[:blank:]]*\).*/\1/};
@@ -419,11 +419,13 @@ case $$,$STATE in
             log_error_msg "Unable to mount /lib/modules"
         log_ok_msg "/root and /lib/modules mounted"
 
+        echo 3 > /proc/sys/vm/drop_caches
+
         log_begin_msg "Starting udev"
         udev_log=err
         mount -n -o size=10M,mode=0755 -t devtmpfs devtmpfs /dev
         udevadm info --cleanup-db
-        for udev in /lib/systemd/systemd-udevd /usr/lib/systemd/systemd-udevd $(which udevd 2> /dev/null); do
+        for udev in /lib/systemd/systemd-udevd /usr/lib/systemd/systemd-udevd $(command -v udevd 2> /dev/null); do
             [ ! -x $udev ] || break
         done
         $udev --daemon
