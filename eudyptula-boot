@@ -73,6 +73,7 @@ Options:
  -c, --cmdline=ARGS    Additional parameters for the kernel.
  -1, --pid1            Execute the shell or the command as PID 1.
  -m, --mem=QTY         How much memory to allocate for the VM.
+ --shell               Start a shell, even when executing a command.
  --qemu=OPTIONS        Additional options for QEMU.
  --net                 Enable network access through the host.
  --force               Allow running dangerous configuration.
@@ -254,9 +255,10 @@ start_vm () {
     echo "$TERM"  > "$TMP/config/term"
     echo "$SHELL" > "$TMP/config/shell"
     echo "$name"  > "$TMP/config/uts"
-    [ -z "$PID1" ] || touch "$TMP/config/pid1"
-    [ -z "$RW" ]   || touch "$TMP/config/rw"
-    [ -z "$UNION" ] || echo "$UNION" > "$TMP/config/union"
+    [ -z "$PID1" ]   || touch "$TMP/config/pid1"
+    [ -z "$RW" ]     || touch "$TMP/config/rw"
+    [ -z "$FSHELL" ] || touch "$TMP/config/fshell"
+    [ -z "$UNION" ]  || echo "$UNION" > "$TMP/config/union"
     [ $# -eq 0 ] || echo "exec" "$@" > "$TMP/config/exec"
 
     # Kernel command-line
@@ -338,9 +340,10 @@ case $$,$STATE in
 
         # Various config stuff
         hostname "$(cat /tmp/config/uts)"
-        [ ! -f /tmp/config/pid1 ] || export PID1=1
-        [ ! -f /tmp/config/rw ]   || export RW=1
-        [ ! -f /tmp/config/union ] || export UNION="$(cat /tmp/config/union)"
+        [ ! -f /tmp/config/pid1 ]   || export PID1=1
+        [ ! -f /tmp/config/rw ]     || export RW=1
+        [ ! -f /tmp/config/fshell ] || export FSHELL=1
+        [ ! -f /tmp/config/union ]  || export UNION="$(cat /tmp/config/union)"
         export TERM=$(cat /tmp/config/term)
         export SHELL=$(cat /tmp/config/shell)
         log_ok_msg "Configuration loaded"
@@ -470,10 +473,14 @@ case $$,$STATE in
 
         # Do we have an exec share?
         if [ -f /tmp/config/exec ]; then
-            ret=0
-            ${PID1:+exec} sh /tmp/config/exec || ret=$?
-            echo $ret > /tmp/config/ret
-            echo b > /proc/sysrq-trigger
+            if [ -z "$FSHELL" ]; then
+                ret=0
+                ${PID1:+exec} sh /tmp/config/exec || ret=$?
+                echo $ret > /tmp/config/ret
+                echo b > /proc/sysrq-trigger
+            else
+                sh /tmp/config/exec
+            fi
         fi
 
         log_info_msg "Setup terminal"
@@ -536,7 +543,7 @@ case $$,$STATE in
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
             -o +hsk:r:c:m:1w \
-            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,net,pid1,readwrite,force \
+            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,net,pid1,readwrite,force,shell \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -580,6 +587,10 @@ case $$,$STATE in
                     ;;
                 -1 | --pid1)
                     PID1=1
+                    shift
+                    ;;
+                --shell)
+                    FSHELL=1
                     shift
                     ;;
                 --force)
