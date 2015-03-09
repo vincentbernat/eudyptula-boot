@@ -67,6 +67,7 @@ Options:
 
  -s, --silent          Makes $PROGNAME silent.
  -v, --verbose         Makes kernel verbose.
+ -2, --ttyS2           Redirect kernel output to ttyS2.
  -k, --kernel=BZIMAGE  Specify the kernel to boot. By default, boot on the
                        running kernel.
  -r, --root=DIR        Specify the directory to use as the root file system.
@@ -263,7 +264,7 @@ start_vm () {
     [ $# -eq 0 ] || echo "exec" "$@" > "$TMP/config/exec"
 
     # Kernel command-line
-    append="console=ttyS0 panic=1 $CMDLINE"
+    append="console=${CONSOLE:-ttyS0} panic=1 $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
     [ -z "$SILENT" ]  || append="$append SILENT=1 loglevel=3"
     [ -n "$VERBOSE" ] || append="quiet"
@@ -271,6 +272,10 @@ start_vm () {
     # qemu command-line
     qemu=""
     [ -z "$MEM" ] || qemu="$qemu -m $MEM"
+    [ -z "$CONSOLE" ] || {
+        qemu="$qemu -chardev socket,id=charserial2,path=$TMP/vm-$name-kernel.pipe,server,wait"
+        qemu="$qemu -device isa-serial,chardev=charserial2,id=serial2"
+    }
     [ x"$NET" != x"1" ] || {
         mac=50:54:00:00:00:42
         qemu="$qemu -net nic,model=virtio,macaddr=$mac,vlan=1"
@@ -315,6 +320,10 @@ EOF
     log_info_msg "GDB server listening on $TMP/vm-$name-gdb.pipe"
     log_info_msg "monitor listening on    $TMP/vm-$name-console.pipe"
     log_info_msg "ttyS1 listening on      $TMP/vm-$name-serial.pipe"
+    [ -z "$CONSOLE" ] || {
+        log_info_msg "ttyS2 listening on      $TMP/vm-$name-kernel.pipe"
+        log_warn_msg "You must connect with 'socat STDIO UNIX:$TMP/vm-$name-kernel.pipe'"
+    }
     chmod +x "$TMP/vm-$name.exec"
     "$TMP/vm-$name.exec"
     log_info_msg "VM terminated"
@@ -544,8 +553,8 @@ case $$,$STATE in
         # Initial state
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
-            -o +hsk:r:c:m:1wv \
-            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,net,pid1,readwrite,force,shell,verbose \
+            -o +hsk:r:c:m:1wv2 \
+            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,net,pid1,readwrite,force,shell,verbose,ttyS2 \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -561,6 +570,10 @@ case $$,$STATE in
                     ;;
                 -v | --verbose)
                     VERBOSE=1
+                    shift
+                    ;;
+                -2 | --ttyS2)
+                    CONSOLE=ttyS2
                     shift
                     ;;
                 -k | --kernel)
