@@ -66,6 +66,7 @@ Boot any Linux kernel using host root filesystem as a base.
 Options:
 
  -s, --silent          Makes $PROGNAME silent.
+ -v, --verbose         Makes kernel verbose.
  -k, --kernel=BZIMAGE  Specify the kernel to boot. By default, boot on the
                        running kernel.
  -r, --root=DIR        Specify the directory to use as the root file system.
@@ -262,9 +263,10 @@ start_vm () {
     [ $# -eq 0 ] || echo "exec" "$@" > "$TMP/config/exec"
 
     # Kernel command-line
-    append="console=ttyS0 panic=1 quiet $CMDLINE"
+    append="console=ttyS0 panic=1 $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
-    [ -z "$SILENT" ] || append="$append SILENT=1 loglevel=3"
+    [ -z "$SILENT" ]  || append="$append SILENT=1 loglevel=3"
+    [ -n "$VERBOSE" ] || append="quiet"
 
     # qemu command-line
     qemu=""
@@ -542,8 +544,8 @@ case $$,$STATE in
         # Initial state
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
-            -o +hsk:r:c:m:1w \
-            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,net,pid1,readwrite,force,shell \
+            -o +hsk:r:c:m:1wv \
+            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,net,pid1,readwrite,force,shell,verbose \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -555,6 +557,10 @@ case $$,$STATE in
                     ;;
                 -s | --silent)
                     SILENT=1
+                    shift
+                    ;;
+                -v | --verbose)
+                    VERBOSE=1
                     shift
                     ;;
                 -k | --kernel)
