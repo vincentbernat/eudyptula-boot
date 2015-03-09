@@ -262,7 +262,7 @@ start_vm () {
     [ $# -eq 0 ] || echo "exec" "$@" > "$TMP/config/exec"
 
     # Kernel command-line
-    append="console=ttyS0 panic=1 quiet $CMDLINE"
+    append="console=ttyS1 panic=1 $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
     [ -z "$SILENT" ] || append="$append SILENT=1 loglevel=3"
 
