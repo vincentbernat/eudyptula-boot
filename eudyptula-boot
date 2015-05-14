@@ -426,6 +426,7 @@ case $$,$STATE in
         log_begin_msg "Setup /proc and /sys"
         mount -n -t proc  proc /proc
         mount -n -t sysfs sys  /sys
+        mount -n -t debugfs debugfs /sys/kernel/debug 2> /dev/null || true
         log_ok_msg "/proc and /sys setup"
 
         log_begin_msg "Mount /root"
