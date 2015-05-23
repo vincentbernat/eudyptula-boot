@@ -177,6 +177,7 @@ check_dependencies() {
     log_begin_msg "Checking if dependencies are present"
     command -v busybox 2> /dev/null > /dev/null || log_error_msg "Busybox is not installed"
     command -v qemu-system-x86_64 2> /dev/null > /dev/null || log_error_msg "qemu-system is not installed"
+    command -v strings 2> /dev/null > /dev/null || log_error_msg "strings is not installed (binutils package)"
     log_ok_msg "All dependencies are met"
 }
 
@@ -637,8 +638,8 @@ case $$,$STATE in
         ROOT="${ROOT:-/}"
         PATH="$PATH":/usr/local/sbin:/usr/sbin:/sbin
 
-        check_kernel
         check_dependencies
+        check_kernel
         setup_tmp
         setup_initrd
         start_vm "$@"
