@@ -268,7 +268,7 @@ start_vm () {
     append="console=${CONSOLE:-ttyS0} panic=1 $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
     [ -z "$SILENT" ]  || append="$append SILENT=1 loglevel=3"
-    [ -n "$VERBOSE" ] || append="quiet"
+    [ -n "$VERBOSE" ] || append="$append quiet"
 
     # qemu command-line
     qemu=""
