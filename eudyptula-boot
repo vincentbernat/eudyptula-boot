@@ -65,7 +65,7 @@ Boot any Linux kernel using host root filesystem as a base.
 
 Options:
 
- -s, --silent          Makes $PROGNAME silent.
+ -s, --silent          Makes $(basename $PROGNAME) silent.
  -v, --verbose         Makes kernel verbose.
  -2, --ttyS2           Redirect kernel output to ttyS2.
  -k, --kernel=BZIMAGE  Specify the kernel to boot. By default, boot on the
