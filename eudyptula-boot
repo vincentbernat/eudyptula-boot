@@ -138,6 +138,7 @@ PROC_FS=y
 BLK_DEV_INITRD=y
 RD_GZIP=y
 DEVTMPFS=[ym]
+BINFMT_SCRIPT=y
 EOF
         grep -qx "CONFIG_$el" $CONFIG || log_error_msg "Kernel not configured with CONFIG_$el"
     done
