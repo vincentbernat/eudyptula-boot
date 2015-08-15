@@ -58,6 +58,7 @@ A minimal configuration should be obtained with:
     CONFIG_64BIT=y
     CONFIG_x86_64=y
     CONFIG_UNIX=y
+    CONFIG_MAGIC_SYSRQ=y
     EOF
     $ make tinyconfig
     $ ./scripts/kconfig/merge_config.sh -m .config .config.needed
