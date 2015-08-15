@@ -121,7 +121,10 @@ EOF
 check_kernel_configuration() {
     log_begin_msg "Check kernel configuration"
     CONFIG="$(dirname $KERNEL)/config-$VERSION"
-    [ -f "$CONFIG" ] || log_error_msg "Unable to find configuration file $CONFIG"
+    [ -f "$CONFIG" ] || {
+        log_warn_msg "Unable to find configuration file $CONFIG"
+        return
+    }
     cat <<EOF | while read el; do
 9P_FS=[ym]
 NET_9P=[ym]
@@ -157,7 +160,9 @@ EOF
         [ -n "$UNION" ] || \
             log_warn_msg "Kernel configuration checked. Neither overlayfs nor AUFS present"
     }
+}
 
+check_kernel_modules() {
     log_begin_msg "Search for modules"
     for dir in "$(dirname $KERNEL)/../lib/modules/$VERSION" "$(dirname $KERNEL)/lib/modules/$VERSION" "/lib/modules/$VERSION"; do
         [ -d $dir ] || continue
@@ -174,6 +179,7 @@ EOF
 check_kernel() {
     check_kernel_version
     check_kernel_configuration
+    check_kernel_modules
 }
 
 check_dependencies() {
