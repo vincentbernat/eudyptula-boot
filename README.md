@@ -10,7 +10,8 @@ The name comes from [Eudyptula][] which is a genus for penguins. This
 is also the name of a [challenge for the Linux kernel][].
 
 This utility is aimed at development only. This is a hack. It relies
-on AUFS and 9P to build the root filesystem from the running system.
+on AUFS/overlayfs and 9P to build the root filesystem from the running
+system.
 
 [Eudyptula]: http://en.wikipedia.org/wiki/Eudyptula
 [challenge for the Linux kernel]: http://eudyptula-challenge.org/
