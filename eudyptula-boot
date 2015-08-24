@@ -270,7 +270,7 @@ start_vm () {
     [ -z "$RW" ]     || touch "$TMP/config/rw"
     [ -z "$FSHELL" ] || touch "$TMP/config/fshell"
     [ -z "$UNION" ]  || echo "$UNION" > "$TMP/config/union"
-    [ $# -eq 0 ] || echo "exec" "$@" > "$TMP/config/exec"
+    [ $# -eq 0 ] || echo "$@" > "$TMP/config/exec"
 
     # Kernel command-line
     append="console=${CONSOLE:-ttyS0} panic=1 $CMDLINE"
@@ -496,6 +496,7 @@ case $$,$STATE in
         # Do we have an exec share?
         if [ -f /tmp/config/exec ]; then
             if [ -z "$FSHELL" ]; then
+                # Don't execute in a shell
                 ret=0
                 ${PID1:+exec} sh /tmp/config/exec || ret=$?
                 echo $ret > /tmp/config/ret
