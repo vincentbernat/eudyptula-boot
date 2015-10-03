@@ -72,6 +72,7 @@ Options:
                        running kernel.
  -r, --root=DIR        Specify the directory to use as the root file system.
  -w, --readwrite       Enable read/write access on the provided root file system.
+ -o, --readonly        Keep the root file system read-only (don't use an overlay).
  -c, --cmdline=ARGS    Additional parameters for the kernel.
  -1, --pid1            Execute the shell or the command as PID 1.
  -m, --mem=QTY         How much memory to allocate for the VM.
@@ -144,7 +145,7 @@ UNIX=y
 EOF
         grep -qx "CONFIG_$el" $CONFIG || log_error_msg "Kernel not configured with CONFIG_$el"
     done
-    [ -n "$RW" ] || {
+    [ -n "$RW" ] || [ -n "$RO" ] || {
         if grep -Eqc "CONFIG_OVERLAYFS_FS=[ym]" $CONFIG; then
             log_ok_msg "Kernel configuration checked. overlayfs present"
             UNION="${UNION}${UNION+ }overlayfs"
@@ -268,6 +269,7 @@ start_vm () {
     echo "$name"  > "$TMP/config/uts"
     [ -z "$PID1" ]   || touch "$TMP/config/pid1"
     [ -z "$RW" ]     || touch "$TMP/config/rw"
+    [ -z "$RO" ]     || touch "$TMP/config/ro"
     [ -z "$FSHELL" ] || touch "$TMP/config/fshell"
     [ -z "$UNION" ]  || echo "$UNION" > "$TMP/config/union"
     [ $# -eq 0 ] || echo "$@" > "$TMP/config/exec"
@@ -363,6 +365,7 @@ case $$,$STATE in
         hostname "$(cat /tmp/config/uts)"
         [ ! -f /tmp/config/pid1 ]   || export PID1=1
         [ ! -f /tmp/config/rw ]     || export RW=1
+        [ ! -f /tmp/config/ro ]     || export RO=1
         [ ! -f /tmp/config/fshell ] || export FSHELL=1
         [ ! -f /tmp/config/union ]  || export UNION="$(cat /tmp/config/union)"
         export TERM=$(cat /tmp/config/term)
@@ -373,43 +376,52 @@ case $$,$STATE in
         mkdir /tmp/target
         mkdir /tmp/target/ro
         mkdir /tmp/target/overlay
-        if [ -z "$RW" ]; then
-            mkdir /tmp/target/rw
-            mount -n -t 9p rootshare /tmp/target/ro -o trans=virtio,version=9p2000.u,ro
-            mount -n -t tmpfs tmpfs  /tmp/target/rw -o rw
-            mkdir /tmp/target/rw/workdir
-            mkdir /tmp/target/rw/upperdir
-            set -- $UNION
-            while [ $# -gt 0 ]; do
-                case $1 in
-                    aufs)
-                        ! mount -n -t aufs aufs /tmp/target/overlay \
-                          -o noxino,noatime,dirs=/tmp/target/rw/upperdir:/tmp/target/ro=ro 2> /dev/null || break
-                        log_warn_msg "Unable to use AUFS"
-                        ;;
-                    overlayfs)
-                        # Pre-3.18
-                        ! mount -n -t $1 overlayfs /tmp/target/overlay \
-                          -o lowerdir=/tmp/target/ro,upperdir=/tmp/target/rw/upperdir,noatime \
-                          2> /dev/null || break
-                        log_warn_msg "Unable to use overlayfs"
-                        ;;
-                    overlay)
-                        # 3.18+
-                        ! mount -n -t $1 overlayfs /tmp/target/overlay \
-                          -o lowerdir=/tmp/target/ro,upperdir=/tmp/target/rw/upperdir,workdir=/tmp/target/rw/workdir,noatime \
-                          2> /dev/null || break
-                        log_warn_msg "Unable to use overlayfs"
-                        ;;
-                esac
-                shift
-            done
-            [ $# -gt 0 ] || \
-                mount -n --bind /tmp/target/ro /tmp/target/overlay
-            log_ok_msg "Root file system setup"
-        else
-            mount -n -t 9p    rootshare /tmp/target/overlay -o trans=virtio,version=9p2000.u,rw
-        fi
+        case $RW,$RO in
+            ,)
+                mkdir /tmp/target/rw
+                mount -n -t 9p rootshare /tmp/target/ro -o trans=virtio,version=9p2000.u,ro
+                mount -n -t tmpfs tmpfs  /tmp/target/rw -o rw
+                mkdir /tmp/target/rw/workdir
+                mkdir /tmp/target/rw/upperdir
+                set -- $UNION
+                while [ $# -gt 0 ]; do
+                    case $1 in
+                        aufs)
+                            ! mount -n -t aufs aufs /tmp/target/overlay \
+                              -o noxino,noatime,dirs=/tmp/target/rw/upperdir:/tmp/target/ro=ro 2> /dev/null || break
+                            log_warn_msg "Unable to use AUFS"
+                            ;;
+                        overlayfs)
+                            # Pre-3.18
+                            ! mount -n -t $1 overlayfs /tmp/target/overlay \
+                              -o lowerdir=/tmp/target/ro,upperdir=/tmp/target/rw/upperdir,noatime \
+                              2> /dev/null || break
+                            log_warn_msg "Unable to use overlayfs"
+                            ;;
+                        overlay)
+                            # 3.18+
+                            ! mount -n -t $1 overlayfs /tmp/target/overlay \
+                              -o lowerdir=/tmp/target/ro,upperdir=/tmp/target/rw/upperdir,workdir=/tmp/target/rw/workdir,noatime \
+                              2> /dev/null || break
+                            log_warn_msg "Unable to use overlayfs"
+                            ;;
+                    esac
+                    shift
+                done
+                [ $# -gt 0 ] || \
+                    mount -n --bind /tmp/target/ro /tmp/target/overlay
+                log_ok_msg "Root file system setup"
+                ;;
+            1,)
+                mount -n -t 9p    rootshare /tmp/target/overlay -o trans=virtio,version=9p2000.u,rw
+                ;;
+            ,1)
+                mount -n -t 9p    rootshare /tmp/target/overlay -o trans=virtio,version=9p2000.u,ro
+                ;;
+            *)
+                log_error_msg "Dunno if root FS should be RO or RW (ro=$RO,rw=$RW)"
+                ;;
+        esac
 
         log_begin_msg "Clean /tmp and /run"
         for fs in /run /var/run /var/tmp /var/log /tmp; do
@@ -566,8 +578,8 @@ case $$,$STATE in
         # Initial state
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
-            -o +hsk:r:c:m:1wv2 \
-            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,net,pid1,readwrite,force,shell,verbose,ttyS2 \
+            -o +hsk:r:c:m:1wov2 \
+            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,net,pid1,readwrite,readonly,force,shell,verbose,ttyS2 \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -599,6 +611,10 @@ case $$,$STATE in
                     ;;
                 -w | --readwrite)
                     RW=1
+                    shift
+                    ;;
+                -o | --readonly)
+                    RO=1
                     shift
                     ;;
                 -c | --cmdline)
@@ -640,6 +656,8 @@ case $$,$STATE in
                     ;;
             esac
         done
+        [ -z "$RW" ] || [ -z "$RO" ] || \
+            log_error_msg "Use of \`--readwrite' and \`--readonly' are exclusive"
         [ -n "$DANGEROUS" ] || [ -z "$RW" ] || [ -n "$ROOT" ] || \
             log_error_msg "Use of \`--readwrite' without \`--root' is too dangerous"
         [ -n "$DANGEROUS" ] || [ $(id -u) != 0 ] || \
