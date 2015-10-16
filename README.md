@@ -109,3 +109,11 @@ You can also get something similar to [guestfish][]:
     $ eudyptula-boot --qemu="-drive file=someimage.qcow2,media=disk,if=virtio"
 
 [guestfish]: http://libguestfs.org/guestfish.1.html
+
+Alternatives
+------------
+
+Similar projects exist:
+
+ - https://github.com/g2p/vido
+ - https://git.kernel.org/cgit/utils/kernel/virtme/virtme.git/
