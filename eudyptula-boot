@@ -126,7 +126,9 @@ check_kernel_configuration() {
         log_warn_msg "Unable to find configuration file $CONFIG"
         return
     }
-    cat <<EOF | while read el; do
+    while read el; do
+        grep -qx "CONFIG_$el" $CONFIG || log_error_msg "Kernel not configured with CONFIG_$el"
+    done <<EOF
 9P_FS=[ym]
 NET_9P=[ym]
 NET_9P_VIRTIO=[ym]
@@ -143,8 +145,6 @@ RD_GZIP=y
 DEVTMPFS=[ym]
 UNIX=y
 EOF
-        grep -qx "CONFIG_$el" $CONFIG || log_error_msg "Kernel not configured with CONFIG_$el"
-    done
     [ -n "$RW" ] || [ -n "$RO" ] || {
         if grep -Eqc "CONFIG_OVERLAYFS_FS=[ym]" $CONFIG; then
             log_ok_msg "Kernel configuration checked. overlayfs present"
