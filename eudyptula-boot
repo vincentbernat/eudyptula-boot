@@ -574,6 +574,12 @@ case $$,$STATE in
         log_ok_msg "Terminal size is $(tput cols)x$(tput lines)"
 
         log_info_msg "QEMU PID is $(cat /tmp/config/pid)"
+        [ -z "$CUSER" ] || {
+            log_info_msg "Configuring sudo"
+            echo "$CUSER ALL=(ALL) NOPASSWD: ALL" > /tmp/sudoers
+            mount --bind /tmp/sudoers /etc/sudoers
+            log_ok_msg "sudo configured for $CUSER"
+        }
         log_info_msg "Spawning a shell"
         export SSH_TTY=$(tty)
         for SHELL in $SHELL /bin/bash /bin/sh; do
