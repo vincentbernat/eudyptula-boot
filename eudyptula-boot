@@ -462,7 +462,7 @@ case $$,$STATE in
         else
             export HOME=$(getent passwd $CUSER | awk -F: '{print $6}')
             log_begin_msg "Mount $HOME"
-            mount -n -t 9p homeshare $HOME -o trans=virtio,version=9p2000.L,access=$(id -u $CUSER),rw || \
+            mount -n -t 9p homeshare $HOME -o trans=virtio,version=9p2000.L,access=any,rw || \
                 log_error_msg "Unable to mount $HOME"
             log_ok_msg "$HOME mounted"
         fi
@@ -574,7 +574,7 @@ case $$,$STATE in
         log_ok_msg "Terminal size is $(tput cols)x$(tput lines)"
 
         log_info_msg "QEMU PID is $(cat /tmp/config/pid)"
-        [ -z "$CUSER" ] || {
+        [ -z "$CUSER" ] || [ ! -x /usr/bin/sudo ] || {
             log_info_msg "Configuring sudo"
             echo "$CUSER ALL=(ALL) NOPASSWD: ALL" > /tmp/sudoers
             mount --bind /tmp/sudoers /etc/sudoers
