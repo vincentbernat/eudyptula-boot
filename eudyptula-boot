@@ -76,6 +76,7 @@ Options:
  -c, --cmdline=ARGS    Additional parameters for the kernel.
  -1, --pid1            Execute the shell or the command as PID 1.
  -m, --mem=QTY         How much memory to allocate for the VM.
+ -u, --user            Login as the current user in VM.
  --shell               Start a shell, even when executing a command.
  --qemu=OPTIONS        Additional options for QEMU.
  --net                 Enable network access through the host.
@@ -261,7 +262,7 @@ start_vm () {
     # Configuration settings
     mkdir "$TMP/config"
     case $PWD in
-        $HOME*) echo /root"${PWD#$HOME}" > "$TMP/config/pwd" ;;
+        $HOME*) echo "${PWD#$HOME/}" > "$TMP/config/pwd" ;;
         *) echo "$PWD" > "$TMP/config/pwd" ;;
     esac
     echo "$TERM"  > "$TMP/config/term"
@@ -272,6 +273,7 @@ start_vm () {
     [ -z "$RO" ]     || touch "$TMP/config/ro"
     [ -z "$FSHELL" ] || touch "$TMP/config/fshell"
     [ -z "$UNION" ]  || echo "$UNION" > "$TMP/config/union"
+    [ -z "$CUSER" ]  || echo "$CUSER" > "$TMP/config/user"
     [ $# -eq 0 ] || echo "$@" > "$TMP/config/exec"
 
     # Kernel command-line
@@ -358,7 +360,7 @@ case $$,$STATE in
         log_begin_msg "Load configuration"
         mount -n -t tmpfs tmpfs /tmp -o rw
         mkdir /tmp/config
-        mount -n -t 9p configshare /tmp/config -o trans=virtio,version=9p2000.u,access=0,rw || \
+        mount -n -t 9p configshare /tmp/config -o trans=virtio,version=9p2000.u,access=any,rw || \
             log_error_msg "Unable to load configuration"
 
         # Various config stuff
@@ -368,6 +370,7 @@ case $$,$STATE in
         [ ! -f /tmp/config/ro ]     || export RO=1
         [ ! -f /tmp/config/fshell ] || export FSHELL=1
         [ ! -f /tmp/config/union ]  || export UNION="$(cat /tmp/config/union)"
+        [ ! -f /tmp/config/user ]   || export CUSER="$(cat /tmp/config/user)"
         export TERM=$(cat /tmp/config/term)
         export SHELL=$(cat /tmp/config/shell)
         log_ok_msg "Configuration loaded"
@@ -451,14 +454,22 @@ case $$,$STATE in
         mount -n -t debugfs debugfs /sys/kernel/debug 2> /dev/null || true
         log_ok_msg "/proc and /sys setup"
 
-        log_begin_msg "Mount /root"
-        mount -n -t 9p homeshare /root -o trans=virtio,version=9p2000.L,access=0,rw || \
-            log_error_msg "Unable to mount /root"
-        log_ok_msg "/root mounted"
+        if [ -z "$CUSER" ]; then
+            log_begin_msg "Mount /root"
+            mount -n -t 9p homeshare /root -o trans=virtio,version=9p2000.L,access=0,rw || \
+                log_error_msg "Unable to mount /root"
+            log_ok_msg "/root mounted"
+        else
+            export HOME=$(getent passwd $CUSER | awk -F: '{print $6}')
+            log_begin_msg "Mount $HOME"
+            mount -n -t 9p homeshare $HOME -o trans=virtio,version=9p2000.L,access=$(id -u $CUSER),rw || \
+                log_error_msg "Unable to mount $HOME"
+            log_ok_msg "$HOME mounted"
+        fi
         log_begin_msg "Mount /lib/modules"
         mount -n -t 9p moduleshare /lib/modules -o trans=virtio,version=9p2000.L,access=0,ro || \
             log_error_msg "Unable to mount /lib/modules"
-        log_ok_msg "/root and /lib/modules mounted"
+        log_ok_msg "/lib/modules mounted"
 
         echo 3 > /proc/sys/vm/drop_caches
 
@@ -510,7 +521,7 @@ case $$,$STATE in
             if [ -z "$FSHELL" ]; then
                 # Don't execute in a shell
                 ret=0
-                ${PID1:+exec} sh /tmp/config/exec || ret=$?
+                ${PID1:+exec} ${CUSER:+chroot --userspec=${CUSER} /} sh -c "cd $PWD && . /tmp/config/exec" || ret=$?
                 echo $ret > /tmp/config/ret
                 echo b > /proc/sysrq-trigger
             else
@@ -569,7 +580,7 @@ case $$,$STATE in
             [ ! -x $SHELL ] || break
         done
         ret=0
-        ${PID1:+exec} ${SHELL} -i || ret=$?
+        ${PID1:+exec} ${CUSER:+chroot --userspec=${CUSER} /} sh -c "cd $PWD && exec ${SHELL} -i" || ret=$?
         echo $ret > /tmp/config/ret
         echo b > /proc/sysrq-trigger
         ;;
@@ -578,8 +589,8 @@ case $$,$STATE in
         # Initial state
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
-            -o +hsk:r:c:m:1wov2 \
-            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,net,pid1,readwrite,readonly,force,shell,verbose,ttyS2 \
+            -o +hsk:r:c:m:u1wov2 \
+            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,user,net,pid1,readwrite,readonly,force,shell,verbose,ttyS2 \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -628,6 +639,10 @@ case $$,$STATE in
                 -m | --mem)
                     MEM="$2"
                     shift 2
+                    ;;
+                -u | --user)
+                    CUSER="$(id -nu)"
+                    shift 1
                     ;;
                 --net)
                     NET=1
