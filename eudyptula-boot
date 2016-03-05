@@ -575,7 +575,7 @@ case $$,$STATE in
 
         log_info_msg "QEMU PID is $(cat /tmp/config/pid)"
         [ -z "$CUSER" ] || [ ! -x /usr/bin/sudo ] || {
-            log_info_msg "Configuring sudo"
+            log_begin_msg "Configuring sudo"
             echo "$CUSER ALL=(ALL) NOPASSWD: ALL" > /tmp/sudoers
             mount --bind /tmp/sudoers /etc/sudoers
             log_ok_msg "sudo configured for $CUSER"
