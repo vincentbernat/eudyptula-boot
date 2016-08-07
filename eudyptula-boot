@@ -373,6 +373,7 @@ case $$,$STATE in
         [ ! -f /tmp/config/user ]   || export CUSER="$(cat /tmp/config/user)"
         export TERM=$(cat /tmp/config/term)
         export SHELL=$(cat /tmp/config/shell)
+        unset SHLVL
         log_ok_msg "Configuration loaded"
 
         log_begin_msg "Setup root file system"
