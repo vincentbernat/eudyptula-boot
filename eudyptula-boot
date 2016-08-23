@@ -186,7 +186,7 @@ check_kernel() {
 check_dependencies() {
     log_begin_msg "Checking if dependencies are present"
     command -v busybox 2> /dev/null > /dev/null || log_error_msg "Busybox is not installed"
-    command -v qemu-system-x86_64 2> /dev/null > /dev/null || log_error_msg "qemu-system is not installed"
+    command -v qemu-system-$(uname -m) 2> /dev/null > /dev/null || log_error_msg "qemu-system-$(uname -m) is not installed"
     command -v strings 2> /dev/null > /dev/null || log_error_msg "strings is not installed (binutils package)"
     log_ok_msg "All dependencies are met"
 }
@@ -301,7 +301,7 @@ start_vm () {
     cat <<EOF > "$TMP/vm-$name.exec"
 #!/bin/sh
         echo \$\$ > $TMP/config/pid
-        exec qemu-system-x86_64 \
+        exec qemu-system-$(uname -m) \
         -enable-kvm \
         -nodefconfig -nodefaults \
         -display none \
