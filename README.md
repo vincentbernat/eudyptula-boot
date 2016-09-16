@@ -45,31 +45,8 @@ Ensure you have the following options enabled (as a module or builtin):
     CONFIG_VIRTIO=y
     CONFIG_VIRTIO_PCI=y
 
-A minimal configuration should be obtained with:
-
-    $ cat <<EOF > .config.needed
-    CONFIG_SHMEM=y
-    CONFIG_TMPFS=y
-    CONFIG_OVERLAY_FS=y
-    CONFIG_SYSFS=y
-    CONFIG_PROC_FS=y
-    CONFIG_DEVTMPFS=y
-    CONFIG_BLK_DEV_INITRD=y
-    CONFIG_RD_GZIP=y
-    CONFIG_ISA=y
-    CONFIG_PRINTK=y
-    CONFIG_EARLY_PRINTK=y
-    CONFIG_BINFMT_SCRIPT=y
-    CONFIG_64BIT=y
-    CONFIG_x86_64=y
-    CONFIG_UNIX=y
-    CONFIG_MAGIC_SYSRQ=y
-    CONFIG_FUTEX=y
-    CONFIG_MULTIUSER=y
-    EOF
-    $ make tinyconfig
-    $ ./scripts/kconfig/merge_config.sh -m .config .config.needed
-    $ make kvmconfig
+To get a somewhat minimal configuration, have a look at the
+`minimal-configuration` script.
 
 Once compiled, the kernel needs to be installed in some work directory:
 
