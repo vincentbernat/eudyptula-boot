@@ -44,6 +44,7 @@ Ensure you have the following options enabled (as a module or builtin):
     CONFIG_NET_9P_VIRTIO=y
     CONFIG_VIRTIO=y
     CONFIG_VIRTIO_PCI=y
+    CONFIG_VIRTIO_CONSOLE=y
 
 To get a somewhat minimal configuration, have a look at the
 `minimal-configuration` script.
@@ -87,6 +88,11 @@ following command to interact with it:
 You can also get something similar to [guestfish][]:
 
     $ eudyptula-boot --qemu="-drive file=someimage.qcow2,media=disk,if=virtio"
+
+With `--extra-gettys`, you can allocate additional consoles. To access
+one of them, use:
+
+    $ socat STDIO,echo=0,icanon=0 UNIX:/tmp/tmp.oCshB5ryj4/getty-1.pipe
 
 [guestfish]: http://libguestfs.org/guestfish.1.html
 
