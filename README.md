@@ -72,6 +72,24 @@ somewhere in the source tree):
     50  }
     (gdb)
 
+If you have modules, you also need to manually load debug symbols for
+them. In guest:
+
+    $ grep . /sys/module/vxlan/sections/{.text,.data,.bss}
+    /sys/module/vxlan/sections/.text:0xffffffffc0370000
+    /sys/module/vxlan/sections/.data:0xffffffffc0378000
+    /sys/module/vxlan/sections/.bss:0xffffffffc0378900
+
+In GDB:
+
+    (gdb) add-symbol-file /usr/lib/debug/lib/modules/$(uname -r)/kernel/drivers/net/vxlan.ko \
+                          0xffffffffc0370000 \
+                 -s .data 0xffffffffc0378000 \
+                 -s .bss  0xffffffffc0378900
+
+This can be automated with `lx-symbols` command if you source
+`vmlinux-gdb.py` from a compiled kernel.
+
 A serial port is also exported. It can be convenient for remote
 debugging of userland processes. More details can be found in this
 [blog post][] (which also covers debugging the kernel).
