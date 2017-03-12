@@ -209,6 +209,14 @@ CONFIG_PID_NS=y
 CONFIG_NET_NS=y
 EOF
             ;;
+        debug)
+            # More debugging support
+            cat <<EOF >> $TMP/.config.needed
+CONFIG_STACKTRACE=y
+CONFIG_DEBUG_INFO=y
+CONFIG_GDB_SCRIPTS=y
+EOF
+            ;;
         *)
             >&2 echo "Unknown flavour \`$1'"
             exit 2
