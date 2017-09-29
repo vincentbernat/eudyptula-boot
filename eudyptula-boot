@@ -315,6 +315,7 @@ start_vm () {
         -enable-kvm \
         -nodefconfig -nodefaults \
         -display none \
+        -cpu host \
         \
         -chardev stdio,id=charserial0,signal=off \
         -device pci-serial,chardev=charserial0,id=serial0 \
