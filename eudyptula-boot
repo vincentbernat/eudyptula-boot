@@ -102,7 +102,7 @@ _check_kernel_version() {
             return 0
         fi
     done
-    command -v $cmd 2> /dev/null > /dev/null || \
+    command -v ${cmd%% *} 2> /dev/null > /dev/null || \
         log_warn_msg "Command \`$cmd' not found to uncompress $KERNEL"
     return 1
 }
@@ -120,6 +120,7 @@ check_kernel_version() {
                   || _check_kernel_version unxz      '\3757zXZ\000' abcde  \
                   || _check_kernel_version bunzip2   'BZh'          xy     \
                   || _check_kernel_version unlzma    '\135\0\0\0'   xxx    \
+                  || _check_kernel_version 'lzop -d' '\211\114\132' xy     \
            )
 
     [ -n "$VERSION" ] || \
