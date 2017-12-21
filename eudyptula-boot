@@ -102,6 +102,8 @@ _check_kernel_version() {
             return 0
         fi
     done
+    command -v $cmd 2> /dev/null > /dev/null || \
+        log_warn_msg "Command \`$cmd' not found to uncompress $KERNEL"
     return 1
 }
 
