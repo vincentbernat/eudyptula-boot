@@ -86,6 +86,25 @@ Options:
 EOF
 }
 
+_check_kernel_version() {
+    cmd=$1
+    sig1=$2
+    sig2=$3
+    case $sig1,$sig2 in
+        ,) poss="0:_" ;;
+        *) poss=$(tr "${sig1}\n${sig2}" "\n${sig2}=" < "$KERNEL" | grep -abo "^${sig2}" || true) ;;
+    esac
+    [ -n "$poss" ] || return 1
+    for pos in $poss; do
+        pos=${pos%%:*}
+        if tail -c+$pos "$KERNEL" | $cmd 2> /dev/null | strings -20 | \
+                grep ^Linux.version; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 check_kernel_version() {
     log_begin_msg "Checking kernel version"
     [ -f "$KERNEL" ] || log_error_msg "Unable to find kernel $KERNEL"
@@ -93,28 +112,16 @@ check_kernel_version() {
 
     # A recent version of `file` is able to extract the
     # information. Since it is not widely available, let use some hack
-    # method.
-    VERSION=$(cat <<EOF |
-cat
-gunzip  \\\037\\\213\\\010 xy
-unxz    \\\3757zXZ\\\000   abcde
-bunzip2 BZh                xy
-unlzma  \\\135\\\0\\\0\\\0 xxx
-EOF
-              while read cmd sig1 sig2; do
-                  case $sig1,$sig2 in
-                      ,) poss="0:_" ;;
-                      *) poss=$(tr "${sig1}\n${sig2}" "\n${sig2}=" < "$KERNEL" | grep -abo "^${sig2}" || true) ;;
-                  esac
-                  [ -n "$poss" ] || continue
-                  for pos in $poss; do
-                      pos=${pos%%:*}
-                      tail -c+$pos "$KERNEL" | $cmd 2> /dev/null | strings -20 | \
-                          grep ^Linux.version | head -1
-                  done
-              done | head -1)
+    # method. See scripts/extract-vmlinux for patterns.
+    VERSION=$(false \
+                  || _check_kernel_version gunzip    '\037\213\010' xy     \
+                  || _check_kernel_version unxz      '\3757zXZ\000' abcde  \
+                  || _check_kernel_version bunzip2   'BZh'          xy     \
+                  || _check_kernel_version unlzma    '\135\0\0\0'   xxx    \
+           )
 
-    [ -n "$VERSION" ] || log_error_msg "Unable to determine version for $KERNEL"
+    [ -n "$VERSION" ] || \
+        log_error_msg "Unable to determine version for $KERNEL"
     VERSION="${VERSION#Linux version }"
     VERSION="${VERSION%% *}"
     log_ok_msg "Found kernel $VERSION"
