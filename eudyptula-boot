@@ -30,31 +30,31 @@ fi
 
 log_begin_msg () {
     [ -n "$SILENT" ] || {
-        printf "${BEGINNING}"
-        printf "${BLUE}[…]${NORMAL} $1${BLUE}...${NORMAL} "
+        >&2 printf "${BEGINNING}"
+        >&2 printf "${BLUE}[…]${NORMAL} $1${BLUE}...${NORMAL} "
     }
 }
 log_ok_msg () {
     [ -n "$SILENT" ] || {
-        printf "${BEGINNING}"
-        echo "$GREEN[✔]$NORMAL $1."
+        >&2 printf "${BEGINNING}"
+        >&2 echo "$GREEN[✔]$NORMAL $1."
     }
 }
 log_warn_msg () {
     [ -n "$SILENT" ] || {
-        printf "${BEGINNING}"
-        echo "$YELLOW[⚡]$NORMAL $1!"
+        >&2 printf "${BEGINNING}"
+        >&2 echo "$YELLOW[⚡]$NORMAL $1!"
     }
 }
 log_error_msg () {
-    printf "${BEGINNING}"
-    echo "$RED[✘]$NORMAL $1!"
+    >&2 printf "${BEGINNING}"
+    >&2 echo "$RED[✘]$NORMAL $1!"
     exit 1
 }
 log_info_msg () {
     [ -n "$SILENT" ] || {
-        printf "${BEGINNING}"
-        echo "$BLUE[∗]$NORMAL $1."
+        >&2 printf "${BEGINNING}"
+        >&2 echo "$BLUE[∗]$NORMAL $1."
     }
 }
 
@@ -121,12 +121,11 @@ check_kernel_version() {
                   || _check_kernel_version bunzip2   'BZh'          xy     \
                   || _check_kernel_version unlzma    '\135\0\0\0'   xxx    \
                   || _check_kernel_version 'lzop -d' '\211\114\132' xy     \
-           )
-
-    [ -n "$VERSION" ] || \
-        log_error_msg "Unable to determine version for $KERNEL"
+                  || true)
     VERSION="${VERSION#Linux version }"
     VERSION="${VERSION%% *}"
+    [ -n "$VERSION" ] || \
+        log_error_msg "Unable to determine version for $KERNEL"
     log_ok_msg "Found kernel $VERSION"
 }
 
