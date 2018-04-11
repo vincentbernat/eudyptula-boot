@@ -217,7 +217,14 @@ setup_initrd () {
     busybox --list | grep -qFx insmod || bins="$bins insmod"
     for bin in $bins; do
         install -D "$(command -v $bin)" ${DESTDIR}/bin/$bin
-        for x in $(ldd "$(command -v $bin)" 2> /dev/null | sed -e '
+
+        # First, get the loader and copy it.
+        objcopy -O binary -j .interp "$(command -v $bin)" $TMP/interp
+        ld=$(tr -d '\000' < $TMP/interp)
+        [ -f "${DESTDIR}/$ld" ] || install -D "$ld" "${DESTDIR}/$ld"
+
+        # Then, use it to get the other libs
+        for x in $(LD_TRACE_LOADED_OBJECTS=1 $ld "$(command -v $bin)" 2> /dev/null | sed -e '
                /\//!d;
                /linux-gate/d;
                /=>/ {s/.*=>[[:blank:]]*\([^[:blank:]]*\).*/\1/};
