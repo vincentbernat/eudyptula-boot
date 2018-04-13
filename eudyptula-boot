@@ -317,8 +317,8 @@ start_vm () {
     }
     [ x"$NET" != x"1" ] || {
         mac=50:54:00:00:00:42
-        qemu="$qemu -net nic,model=virtio,macaddr=$mac,vlan=1"
-        qemu="$qemu -net user,vlan=1,name=internet"
+        qemu="$qemu -netdev user,id=internet"
+        qemu="$qemu -device virtio-net-pci,mac=$mac,netdev=internet"
     }
     qemu="$qemu $QEMU"
     # /root is mounted with version 9p2000.u to allow access to /dev,
