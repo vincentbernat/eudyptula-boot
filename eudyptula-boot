@@ -614,7 +614,7 @@ case $$,$STATE in
         PROGNAME="$(readlink -f "$0")"
         ARGS="$(getopt -n eudyptula-boot \
             -o +hsk:r:c:m:u1wov2 \
-            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,extra-gettys:,user,net,pid1,readwrite,readonly,force,shell,verbose,ttyS2 \
+            --longoptions help,silent,kernel:,root:,cmdline:,qemu:,mem:,extra-gettys:,user,net,network,pid1,readwrite,readonly,force,shell,verbose,ttyS2 \
             -- "$@")" || \
             log_error_msg "Invalid option, use --help for more information"
         eval set -- "$ARGS"
@@ -668,7 +668,7 @@ case $$,$STATE in
                     CUSER="$(id -nu)"
                     shift 1
                     ;;
-                --net)
+                --net|--network)
                     NET=1
                     shift
                     ;;
