@@ -219,8 +219,10 @@ setup_initrd () {
     for bin in $bins; do
         install -D "$(command -v $bin)" ${DESTDIR}/bin/$bin
 
-        # First, get the loader and copy it.
+        # First, get the loader and copy it (unless static binary)
         objcopy -O binary -j .interp "$(command -v $bin)" $TMP/interp
+        [ -s $TMP/interp ] || continue
+
         ld=$(tr -d '\000' < $TMP/interp)
         [ -f "${DESTDIR}/$ld" ] || install -D "$ld" "${DESTDIR}/$ld"
 
