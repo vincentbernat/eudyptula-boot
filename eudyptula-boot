@@ -720,7 +720,6 @@ case $$,$STATE in
         start_vm "$@"
         ret=255
         [ ! -f $TMP/config/ret ] || ret="$(cat $TMP/config/ret)"
-        rm -rf $TMP || true
         exit $ret
         ;;
 esac
