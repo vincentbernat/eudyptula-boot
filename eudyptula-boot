@@ -590,8 +590,12 @@ case $$,$STATE in
         printf '\0337\033[r\033[999;999H\033[6n\0338' > /dev/tty
         IFS='[;R' read -r _ rows cols _ < /dev/tty || true
         stty "$previous"
-        stty cols "$cols" rows "$rows"
-        log_ok_msg "Terminal size is $cols×$rows"
+        if [ -n "$cols" ] && [ -n "$rows" ]; then
+            stty cols "$cols" rows "$rows"
+            log_ok_msg "Terminal size is $cols×$rows"
+        else
+            log_warn_msg "Unknown terminal size"
+        fi
 
         log_info_msg "QEMU PID is $(cat /tmp/config/pid)"
         log_info_msg "Spawning a shell"
