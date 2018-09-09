@@ -55,7 +55,7 @@ Once compiled, the kernel needs to be installed in some work directory:
 
 Then, boot your kernel with:
 
-    $ eudyptula-boot --kernel vmlinuz-3.15.0~rc5-02950-g7e61329b0c26
+    $ eudyptula-boot --kernel $WORK/vmlinuz-3.15.0~rc5-02950-g7e61329b0c26
 
 Use `--help` to get additional available options.
 
