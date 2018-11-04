@@ -227,13 +227,16 @@ CONFIG_NET_NS=y
 EOF
             ;;
         debug)
-            # More debugging support
+            # More debugging support. We need modules to get kprobes.
             cat <<EOF >> .config
+CONFIG_MODULES=y
 CONFIG_STACKTRACE=y
-CONFIG_HOST_TRIGGERS=y
+CONFIG_HIST_TRIGGERS=y
 CONFIG_STACK_TRACER=y
 CONFIG_FUNCTION_TRACER=y
 CONFIG_FTRACE_SYSCALLS=y
+CONFIG_KPROBES=y
+CONFIG_KPROBES_EVENTS=y
 CONFIG_DEBUG_INFO=y
 CONFIG_GDB_SCRIPTS=y
 CONFIG_COREDUMP=y
