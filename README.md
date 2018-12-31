@@ -22,7 +22,7 @@ for affected kernels, see the `--readonly` option.
 [challenge for the Linux kernel]: http://eudyptula-challenge.org/
 
 Also see
-[this blog post](http://vincent.bernat.im/en/blog/2014-eudyptula-boot.html)
+[this blog post](http://vincent.bernat.ch/en/blog/2014-eudyptula-boot)
 for a quick presentation of this tool.
 
 Usage
@@ -98,7 +98,7 @@ A serial port is also exported. It can be convenient for remote
 debugging of userland processes. More details can be found in this
 [blog post][] (which also covers debugging the kernel).
 
-[blog post]: http://vincent.bernat.im/en/blog/2012-network-lab-kvm.html
+[blog post]: http://vincent.bernat.ch/en/blog/2012-network-lab-kvm
 
 QEMU monitor is also attached to a UNIX socket. You can use the
 following command to interact with it:
