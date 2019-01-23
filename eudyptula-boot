@@ -333,7 +333,7 @@ start_vm () {
         echo \$\$ > $TMP/config/pid
         exec qemu-system-$(uname -m) \
         -enable-kvm \
-        -nodefconfig -nodefaults \
+        -no-user-config -nodefaults \
         -display none \
         -cpu host \
         \
