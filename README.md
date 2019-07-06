@@ -72,10 +72,6 @@ somewhere in the source tree):
     50  }
     (gdb)
 
-Starting from 4.12, KASLR may be troublesome when debugging. The easy
-way is to disable it by providing `nokaslr` flag to the kernel with
-`-c nokaslr`.
-
 If you have modules, you also need to manually load debug symbols for
 them. In guest:
 
