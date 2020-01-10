@@ -336,6 +336,7 @@ start_vm () {
         -no-user-config -nodefaults \
         -display none \
         -cpu host \
+        -device virtio-rng \
         \
         -chardev stdio,id=charserial0,signal=off \
         -device pci-serial,chardev=charserial0,id=serial0 \
