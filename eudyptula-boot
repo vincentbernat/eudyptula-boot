@@ -347,9 +347,9 @@ start_vm () {
         -chardev socket,id=con0,path=$TMP/vm-$name-console.pipe,server,nowait \
         -mon chardev=con0,mode=readline \
         \
-        -fsdev local,security_model=passthrough,id=fsdev-root,path=${ROOT} \
+        -fsdev local,security_model=passthrough,id=fsdev-root,path=${ROOT},multidevs=remap \
         -device virtio-9p-pci,id=fs-root,fsdev=fsdev-root,mount_tag=rootshare \
-        -fsdev local,security_model=none,id=fsdev-home,path=${HOME} \
+        -fsdev local,security_model=none,id=fsdev-home,path=${HOME},multidevs=remap \
         -device virtio-9p-pci,id=fs-home,fsdev=fsdev-home,mount_tag=homeshare \
         -fsdev local,security_model=none,id=fsdev-modules,path=${MODULES}/..,readonly \
         -device virtio-9p-pci,id=fs-modules,fsdev=fsdev-modules,mount_tag=moduleshare \
