@@ -13,11 +13,6 @@ This utility is aimed at development only. This is a hack. It relies
 on AUFS/overlayfs and 9P to build the root filesystem from the running
 system.
 
-Unfortunately, a change in overlayfs in Linux 4.2 prevents its use
-with 9P (change `4bacc9`). This has been fixed in Linux 4.6 (change
-`b403f0`). The fix is also present in Linux 4.4.17+. As a workaround
-for affected kernels, see the `--readonly` option.
-
 [Eudyptula]: http://en.wikipedia.org/wiki/Eudyptula
 [challenge for the Linux kernel]: http://eudyptula-challenge.org/
 
