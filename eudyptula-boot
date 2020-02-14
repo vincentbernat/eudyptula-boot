@@ -238,10 +238,7 @@ setup_initrd () {
     done
 
     # Configure busybox
-    for applet in $(${DESTDIR}/bin/busybox --list); do
-        [ $applet != busybox ] || continue
-        ln -s busybox ${DESTDIR}/bin/${applet}
-    done
+    ${DESTDIR}/bin/busybox --install ${DESTDIR}/bin
 
     # Add modules
     [ -z "$MODULES" ] || {
