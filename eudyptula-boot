@@ -298,7 +298,7 @@ start_vm () {
     [ $# -eq 0 ] || echo "$@" > "$TMP/config/exec"
 
     # Kernel command-line
-    append="console=${CONSOLE:-ttyS0} panic=1 8250.nr_uarts=4 nokaslr $CMDLINE"
+    append="console=${CONSOLE:-hvc0} panic=1 8250.nr_uarts=4 nokaslr $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
     [ -z "$SILENT" ]  || append="$append SILENT=1 loglevel=3"
     [ -n "$VERBOSE" ] || append="$append quiet"
@@ -337,9 +337,10 @@ start_vm () {
         -device virtio-rng \
         \
         -chardev stdio,id=charserial0,signal=off \
-        -device pci-serial,chardev=charserial0,id=serial0 \
+        -device virtio-serial-pci
+        -device virtserialport,chardev=charserial0,id=serial0
         -chardev socket,id=charserial1,path=$TMP/vm-$name-serial.pipe,server,nowait \
-        -device pci-serial,chardev=charserial1,id=serial1 \
+        -device virtserialport,chardev=charserial1,id=serial1 \
         \
         -chardev socket,id=con0,path=$TMP/vm-$name-console.pipe,server,nowait \
         -mon chardev=con0,mode=readline \
@@ -363,7 +364,7 @@ start_vm () {
 EOF
     log_info_msg "GDB server listening on $TMP/vm-$name-gdb.pipe"
     log_info_msg "monitor listening on    $TMP/vm-$name-console.pipe"
-    log_info_msg "ttyS1 listening on      $TMP/vm-$name-serial.pipe"
+    log_info_msg "hvc1 listening on       $TMP/vm-$name-serial.pipe"
     [ -z "$EXTRA_GETTYS" ] || {
         for i in $(seq $EXTRA_GETTYS); do
             log_info_msg "Getty $i listening on    $TMP/getty-$i.pipe"
@@ -580,7 +581,7 @@ case $$,$STATE in
                 while true; do /sbin/agetty -n -L hvc$((i-1)) -a root -l /tmp/init -i 115200 $TERM ; done &
             done
         }
-        exec setsid /sbin/agetty -n -L ttyS0 -a root -l /tmp/init -i 115200 $TERM
+        exec setsid /sbin/agetty -n -L hvc0 -a root -l /tmp/init -i 115200 $TERM
         ;;
 
     *,GETTY)
