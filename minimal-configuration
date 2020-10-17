@@ -252,4 +252,4 @@ EOF
     shift
 done
 
-make kvmconfig
+make kvm_guest.config || make kvmconfig
