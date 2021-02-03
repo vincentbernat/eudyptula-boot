@@ -395,7 +395,7 @@ case $$,$STATE in
         log_begin_msg "Load configuration"
         mount -n -t tmpfs tmpfs /tmp -o rw
         mkdir /tmp/config
-        mount -n -t 9p configshare /tmp/config -o trans=virtio,version=9p2000.u,access=any,rw,cache=loose || \
+        mount -n -t 9p configshare /tmp/config -o trans=virtio,version=9p2000.u,access=any,msize=104857600,rw,cache=loose || \
             log_error_msg "Unable to load configuration"
 
         # Various config stuff
@@ -418,7 +418,7 @@ case $$,$STATE in
         case $RW,$RO in
             ,)
                 mkdir /tmp/target/rw
-                mount -n -t 9p rootshare /tmp/target/ro -o trans=virtio,version=9p2000.u,ro,cache=loose
+                mount -n -t 9p rootshare /tmp/target/ro -o trans=virtio,version=9p2000.u,msize=104857600,ro,cache=loose
                 mount -n -t tmpfs tmpfs  /tmp/target/rw -o rw
                 mkdir /tmp/target/rw/workdir
                 mkdir /tmp/target/rw/upperdir
@@ -452,10 +452,10 @@ case $$,$STATE in
                 log_ok_msg "Root file system setup"
                 ;;
             1,)
-                mount -n -t 9p    rootshare /tmp/target/overlay -o trans=virtio,version=9p2000.u,rw,cache=loose
+                mount -n -t 9p    rootshare /tmp/target/overlay -o trans=virtio,version=9p2000.u,msize=104857600,rw,cache=loose
                 ;;
             ,1)
-                mount -n -t 9p    rootshare /tmp/target/overlay -o trans=virtio,version=9p2000.u,ro,cache=loose
+                mount -n -t 9p    rootshare /tmp/target/overlay -o trans=virtio,version=9p2000.u,msize=104857600,ro,cache=loose
                 ;;
             *)
                 log_error_msg "Dunno if root FS should be RO or RW (ro=$RO,rw=$RW)"
@@ -493,18 +493,18 @@ case $$,$STATE in
 
         if [ -z "$CUSER" ]; then
             log_begin_msg "Mount /root"
-            mount -n -t 9p homeshare /root -o trans=virtio,version=9p2000.L,access=0,rw,cache=loose || \
+            mount -n -t 9p homeshare /root -o trans=virtio,version=9p2000.L,access=0,msize=104857600,rw,cache=loose || \
                 log_error_msg "Unable to mount /root"
             log_ok_msg "/root mounted"
         else
             export HOME=$(getent passwd $CUSER | awk -F: '{print $6}')
             log_begin_msg "Mount $HOME"
-            mount -n -t 9p homeshare $HOME -o trans=virtio,version=9p2000.L,access=any,rw,cache=loose || \
+            mount -n -t 9p homeshare $HOME -o trans=virtio,version=9p2000.L,access=any,msize=104857600,rw,cache=loose || \
                 log_error_msg "Unable to mount $HOME"
             log_ok_msg "$HOME mounted"
         fi
         log_begin_msg "Mount /lib/modules"
-        mount -n -t 9p moduleshare /lib/modules -o trans=virtio,version=9p2000.L,access=0,ro,cache=loose || \
+        mount -n -t 9p moduleshare /lib/modules -o trans=virtio,version=9p2000.L,access=0,msize=104857600,ro,cache=loose || \
             log_error_msg "Unable to mount /lib/modules"
         log_ok_msg "/lib/modules mounted"
 
