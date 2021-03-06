@@ -48,6 +48,13 @@ CONFIG_VETH=y
 CONFIG_VLAN_8021Q=y
 EOF
             ;;
+        rocker)
+            cat <<EOF >> .config
+CONFIG_NET_SWITCHDEV=y
+CONFIG_BRIDGE=y
+CONFIG_ROCKER=y
+EOF
+            ;;
         netfilter)
             # Netfilter
             cat <<EOF >> .config
