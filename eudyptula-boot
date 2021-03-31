@@ -320,7 +320,7 @@ start_vm () {
     [ x"$NET" != x"1" ] || {
         mac=50:54:00:00:00:42
         qemu="$qemu -netdev user,id=internet"
-        qemu="$qemu -device virtio-net-pci,mac=$mac,netdev=internet"
+        qemu="$qemu -device virtio-net-pci,mac=$mac,netdev=internet,id=internet-dev"
     }
     qemu="$qemu $QEMU"
     # /root is mounted with version 9p2000.u to allow access to /dev,
