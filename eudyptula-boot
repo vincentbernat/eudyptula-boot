@@ -361,9 +361,9 @@ start_vm () {
         \
         $qemu
 EOF
-    log_info_msg "GDB server listening on $TMP/vm-$name-gdb.pipe"
-    log_info_msg "monitor listening on    $TMP/vm-$name-console.pipe"
-    log_info_msg "ttyS1 listening on      $TMP/vm-$name-serial.pipe"
+    log_info_msg "monitor listening on  $TMP/vm-$name-console.pipe"
+    log_info_msg "ttyS1 listening on    $TMP/vm-$name-serial.pipe"
+    log_info_msg "GDB server            gdb -ex='target remote $TMP/vm-$name-gdb.pipe'"
     [ -z "$EXTRA_GETTYS" ] || {
         for i in $(seq $EXTRA_GETTYS); do
             log_info_msg "Getty $i listening on    $TMP/getty-$i.pipe"

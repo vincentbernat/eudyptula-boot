@@ -61,8 +61,8 @@ somewhere in the source tree):
     $ gdb vmlinux
     GNU gdb (GDB) 7.4.1-debian
     Reading symbols from /home/bernat/src/linux/vmlinux...done.
-    (gdb) target remote | socat UNIX:/path/to/vm-eudyptula-gdb.pipe -
-    Remote debugging using | socat UNIX:/path/to/vm-eudyptula-gdb.pipe -
+    (gdb) target remote /path/to/vm-eudyptula-gdb.pipe
+    Remote debugging using /path/to/vm-eudyptula-gdb.pipe
     native_safe_halt () at /home/bernat/src/linux/arch/x86/include/asm/irqflags.h:50
     50  }
     (gdb)
