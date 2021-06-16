@@ -298,7 +298,7 @@ start_vm () {
     [ $# -eq 0 ] || echo "$@" > "$TMP/config/exec"
 
     # Kernel command-line
-    append="console=${CONSOLE:-ttyS0} panic=1 8250.nr_uarts=4 nokaslr $CMDLINE"
+    append="console=${CONSOLE:-ttyS0} panic=1 8250.nr_uarts=4 nokaslr acpi=off reboot=t $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
     [ -z "$SILENT" ]  || append="$append SILENT=1 loglevel=3"
     [ -n "$VERBOSE" ] || append="$append quiet"
@@ -330,16 +330,18 @@ start_vm () {
 #!/bin/sh
         echo \$\$ > $TMP/config/pid
         exec qemu-system-$(uname -m) \
+        -M microvm,x-option-roms=off,rtc=off \
         -enable-kvm \
         -no-user-config -nodefaults \
+        -no-acpi \
         -display none \
         -cpu host \
         -device virtio-rng-device \
         \
         -chardev stdio,id=charserial0,signal=off \
-        -device pci-serial,chardev=charserial0,id=serial0 \
+        -device isa-serial,chardev=charserial0,id=serial0 \
         -chardev socket,id=charserial1,path=$TMP/vm-$name-serial.pipe,server=on,wait=off \
-        -device pci-serial,chardev=charserial1,id=serial1 \
+        -device isa-serial,chardev=charserial1,id=serial1 \
         \
         -chardev socket,id=con0,path=$TMP/vm-$name-console.pipe,server=on,wait=off \
         -mon chardev=con0,mode=readline \
