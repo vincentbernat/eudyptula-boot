@@ -307,13 +307,13 @@ start_vm () {
     qemu=""
     [ -z "$MEM" ] || qemu="$qemu -m $MEM"
     [ -z "$CONSOLE" ] || {
-        qemu="$qemu -chardev socket,id=charserial2,path=$TMP/vm-$name-kernel.pipe,server,wait"
+        qemu="$qemu -chardev socket,id=charserial2,path=$TMP/vm-$name-kernel.pipe,server=on,wait=on"
         qemu="$qemu -device pci-serial,chardev=charserial2,id=serial2"
     }
     [ -z "$EXTRA_GETTYS" ] || {
         qemu="$qemu -device virtio-serial"
         for i in $(seq $EXTRA_GETTYS); do
-            qemu="$qemu -chardev socket,id=getty$i,server,nowait,path=$TMP/getty-$i.pipe"
+            qemu="$qemu -chardev socket,id=getty$i,server=on,wait=off,path=$TMP/getty-$i.pipe"
             qemu="$qemu -device virtconsole,name=console.$((i-1)),chardev=getty$i"
         done
     }
