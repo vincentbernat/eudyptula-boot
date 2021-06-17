@@ -144,11 +144,10 @@ check_kernel_configuration() {
 NET_9P=[ym]
 NET_9P_VIRTIO=[ym]
 VIRTIO=[ym]
-VIRTIO_PCI=[ym]
+VIRTIO_MMIO=[ym]
 VIRTIO_NET=[ym]
 SERIAL_8250=y
 SERIAL_8250_CONSOLE=y
-SERIAL_8250_PCI=y
 TMPFS=y
 SYSFS=y
 PROC_FS=y
@@ -242,7 +241,7 @@ setup_initrd () {
 
     # Add modules
     [ -z "$MODULES" ] || {
-        modules="9pnet_virtio 9p virtio_pci virtio_net"
+        modules="9pnet_virtio 9p virtio_mmio virtio_net"
         [ -z "$UNION" ] || modules="$modules $UNION"
         for mod in $modules; do
             base=${MODULES}/../../..
@@ -298,7 +297,7 @@ start_vm () {
     [ $# -eq 0 ] || echo "$@" > "$TMP/config/exec"
 
     # Kernel command-line
-    append="console=${CONSOLE:-ttyS0} panic=1 8250.nr_uarts=4 nokaslr $CMDLINE"
+    append="console=${CONSOLE:-ttyS0} panic=1 8250.nr_uarts=4 nokaslr acpi=off reboot=t $CMDLINE"
     [ -t 1 ] || append="$append noterm=1"
     [ -z "$SILENT" ]  || append="$append SILENT=1 loglevel=3"
     [ -n "$VERBOSE" ] || append="$append quiet"
@@ -307,20 +306,19 @@ start_vm () {
     qemu=""
     [ -z "$MEM" ] || qemu="$qemu -m $MEM"
     [ -z "$CONSOLE" ] || {
-        qemu="$qemu -chardev socket,id=charserial2,path=$TMP/vm-$name-kernel.pipe,server,wait"
-        qemu="$qemu -device pci-serial,chardev=charserial2,id=serial2"
+        qemu="$qemu -chardev socket,id=charserial2,path=$TMP/vm-$name-kernel.pipe,server=on,wait=on"
+        qemu="$qemu -device virtconsole,chardev=charserial2,id=serial2"
     }
     [ -z "$EXTRA_GETTYS" ] || {
-        qemu="$qemu -device virtio-serial"
         for i in $(seq $EXTRA_GETTYS); do
-            qemu="$qemu -chardev socket,id=getty$i,server,nowait,path=$TMP/getty-$i.pipe"
+            qemu="$qemu -chardev socket,id=getty$i,server=on,wait=off,path=$TMP/getty-$i.pipe"
             qemu="$qemu -device virtconsole,name=console.$((i-1)),chardev=getty$i"
         done
     }
     [ x"$NET" != x"1" ] || {
         mac=50:54:00:00:00:42
         qemu="$qemu -netdev user,id=internet"
-        qemu="$qemu -device virtio-net-pci,mac=$mac,netdev=internet,id=internet-dev"
+        qemu="$qemu -device virtio-net-device,mac=$mac,netdev=internet,id=internet-dev"
     }
     qemu="$qemu $QEMU"
     # /root is mounted with version 9p2000.u to allow access to /dev,
@@ -330,28 +328,31 @@ start_vm () {
 #!/bin/sh
         echo \$\$ > $TMP/config/pid
         exec qemu-system-$(uname -m) \
+        -M microvm,x-option-roms=off,rtc=off \
         -enable-kvm \
         -no-user-config -nodefaults \
+        -no-acpi \
         -display none \
         -cpu host \
-        -device virtio-rng \
+        -device virtio-rng-device \
         \
         -chardev stdio,id=charserial0,signal=off \
-        -device pci-serial,chardev=charserial0,id=serial0 \
+        -device isa-serial,chardev=charserial0,id=serial0 \
         -chardev socket,id=charserial1,path=$TMP/vm-$name-serial.pipe,server=on,wait=off \
-        -device pci-serial,chardev=charserial1,id=serial1 \
+        -device virtio-serial-device
+        -device virtconsole,chardev=charserial1,id=serial1 \
         \
         -chardev socket,id=con0,path=$TMP/vm-$name-console.pipe,server=on,wait=off \
         -mon chardev=con0,mode=readline \
         \
         -fsdev local,security_model=passthrough,id=fsdev-root,path=${ROOT},multidevs=remap \
-        -device virtio-9p-pci,id=fs-root,fsdev=fsdev-root,mount_tag=rootshare \
+        -device virtio-9p-device,id=fs-root,fsdev=fsdev-root,mount_tag=rootshare \
         -fsdev local,security_model=none,id=fsdev-home,path=${HOME},multidevs=remap \
-        -device virtio-9p-pci,id=fs-home,fsdev=fsdev-home,mount_tag=homeshare \
+        -device virtio-9p-device,id=fs-home,fsdev=fsdev-home,mount_tag=homeshare \
         -fsdev local,security_model=none,id=fsdev-modules,path=${MODULES}/..,readonly=on \
-        -device virtio-9p-pci,id=fs-modules,fsdev=fsdev-modules,mount_tag=moduleshare \
+        -device virtio-9p-device,id=fs-modules,fsdev=fsdev-modules,mount_tag=moduleshare \
         -fsdev local,security_model=passthrough,id=fsdev-config,path=$TMP/config \
-        -device virtio-9p-pci,id=fs-config,fsdev=fsdev-config,mount_tag=configshare \
+        -device virtio-9p-device,id=fs-config,fsdev=fsdev-config,mount_tag=configshare \
         \
         -gdb unix:$TMP/vm-$name-gdb.pipe,server=on,wait=off \
         -no-reboot \
