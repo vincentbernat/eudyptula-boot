@@ -16,6 +16,8 @@
 
 set -e
 
+QEMU_SYSTEM=${QEMU_SYSTEM:="qemu-system-$(uname -m)"}
+
 ESC="$(printf '\033')"
 if [ -t 1 ] && [ -z "$noterm" ]; then
     NORMAL="${ESC}[0m"
@@ -82,6 +84,10 @@ Options:
  --net                 Enable network access through the host.
  --force               Allow running dangerous configuration.
  --extra-gettys=QTY    Allocate extra console ports.
+
+Environment Variables:
+
+ QEMU_SYSTEM           Override the default 'qemu-system-$(uname -m)' with a custom version.
 
 EOF
 }
@@ -198,7 +204,7 @@ check_kernel() {
 check_dependencies() {
     log_begin_msg "Checking if dependencies are present"
     command -v busybox 2> /dev/null > /dev/null || log_error_msg "Busybox is not installed"
-    command -v qemu-system-$(uname -m) 2> /dev/null > /dev/null || log_error_msg "qemu-system-$(uname -m) is not installed"
+    command -v ${QEMU_SYSTEM} 2> /dev/null > /dev/null || log_error_msg "${QEMU_SYSTEM} is not installed"
     command -v strings 2> /dev/null > /dev/null || log_error_msg "strings is not installed (binutils package)"
     log_ok_msg "All dependencies are met"
 }
@@ -329,7 +335,7 @@ start_vm () {
     cat <<EOF > "$TMP/vm-$name.exec"
 #!/bin/sh
         echo \$\$ > $TMP/config/pid
-        exec qemu-system-$(uname -m) \
+        exec ${QEMU_SYSTEM} \
         -enable-kvm \
         -no-user-config -nodefaults \
         -display none \
