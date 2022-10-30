@@ -285,6 +285,14 @@ start_vm () {
     name=$(echo eudyptula-${VERSION} | tr '.' '-')
     log_info_msg "Start VM $name"
 
+    if [ -e /dev/kvm ]; then
+        KVM="-enable-kvm -cpu host"
+        log_info_msg "KVM is active"
+    else
+        KVM=""
+        log_info_msg "KVM is not available"
+    fi	
+
     # Configuration settings
     mkdir "$TMP/config"
     case $PWD in
@@ -336,10 +344,9 @@ start_vm () {
 #!/bin/sh
         echo \$\$ > $TMP/config/pid
         exec ${QEMU_SYSTEM} \
-        -enable-kvm \
+        ${KVM} \
         -no-user-config -nodefaults \
         -display none \
-        -cpu host \
         -device virtio-rng \
         \
         -chardev stdio,id=charserial0,signal=off \
