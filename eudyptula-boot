@@ -285,8 +285,8 @@ start_vm () {
     name=$(echo eudyptula-${VERSION} | tr '.' '-')
     log_info_msg "Start VM $name"
 
-    if [ -e /dev/kvm ]; then
-        KVM="-enable-kvm -cpu host"
+    if [ -e /dev/kvm ] && ${QEMU_SYSTEM} -accel help | grep -qwFx kvm; then
+        KVM="-enable-kvm"
         log_info_msg "KVM is active"
     else
         KVM=""
@@ -345,6 +345,7 @@ start_vm () {
         echo \$\$ > $TMP/config/pid
         exec ${QEMU_SYSTEM} \
         ${KVM} \
+        -cpu max \
         -no-user-config -nodefaults \
         -display none \
         -device virtio-rng \
