@@ -527,6 +527,8 @@ case $$,$STATE in
         log_begin_msg "Starting udev"
         udev_log=err
         mount -n -o size=10M,mode=0755 -t devtmpfs devtmpfs /dev
+        mkdir /dev/shm
+        mount -t tmpfs tmpfs /dev/shm
         udevadm info --cleanup-db
         for udev in /lib/systemd/systemd-udevd /usr/lib/systemd/systemd-udevd $(command -v udevd 2> /dev/null); do
             [ ! -x $udev ] || break
