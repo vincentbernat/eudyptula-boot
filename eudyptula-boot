@@ -507,13 +507,13 @@ case $$,$STATE in
 
         if [ -z "$CUSER" ]; then
             log_begin_msg "Mount /root"
-            mount -n -t 9p homeshare /root -o trans=virtio,version=9p2000.L,access=0,msize=104857600,rw,cache=loose || \
+            mount -n -t 9p homeshare /root -o trans=virtio,version=9p2000.L,access=0,msize=104857600,rw,cache=mmap || \
                 log_error_msg "Unable to mount /root"
             log_ok_msg "/root mounted"
         else
             export HOME=$(getent passwd $CUSER | awk -F: '{print $6}')
             log_begin_msg "Mount $HOME"
-            mount -n -t 9p homeshare $HOME -o trans=virtio,version=9p2000.L,access=any,msize=104857600,rw,cache=loose || \
+            mount -n -t 9p homeshare $HOME -o trans=virtio,version=9p2000.L,access=any,msize=104857600,rw,cache=mmap || \
                 log_error_msg "Unable to mount $HOME"
             log_ok_msg "$HOME mounted"
         fi
