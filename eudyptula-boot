@@ -518,6 +518,7 @@ case $$,$STATE in
             log_ok_msg "$HOME mounted"
         fi
         log_begin_msg "Mount /lib/modules"
+        mkdir -p /lib/modules
         mount -n -t 9p moduleshare /lib/modules -o trans=virtio,version=9p2000.L,access=0,msize=104857600,ro,cache=loose || \
             log_error_msg "Unable to mount /lib/modules"
         log_ok_msg "/lib/modules mounted"
