@@ -221,8 +221,7 @@ setup_initrd () {
     mkdir -p $DESTDIR
 
     # Copy busybox and eventually insmod
-    bins="busybox"
-    busybox --list | grep -qFx insmod || bins="$bins insmod"
+    bins="busybox insmod"
     for bin in $bins; do
         install -D "$(command -v $bin)" ${DESTDIR}/bin/$bin
 
@@ -263,7 +262,7 @@ setup_initrd () {
                 [ "${prefix}" = "insmod" ] || continue
                 grep -qFw "$kmod" ${DESTDIR}/modules 2> /dev/null || {
                     install -D "$kmod" "${DESTDIR}/${kmod}"
-                    echo $prefix $kmod $options >> ${DESTDIR}/modules
+                    echo /bin/insmod $kmod $options >> ${DESTDIR}/modules
                 }
             done
         done
