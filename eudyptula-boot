@@ -540,6 +540,7 @@ case $$,$STATE in
         udevadm settle
         mkdir -p /dev/pts
         mount -n -t devpts devpts /dev/pts 2> /dev/null || true
+        ln -sf /proc/self/fd /dev/fd
         log_ok_msg "udev started"
 
         sysctl -q -w kernel.panic_on_oops=1
