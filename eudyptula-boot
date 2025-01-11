@@ -127,6 +127,8 @@ check_kernel_version() {
                   || _check_kernel_version bunzip2   'BZh'          xy     \
                   || _check_kernel_version unlzma    '\135\0\0\0'   xxx    \
                   || _check_kernel_version 'lzop -d' '\211\114\132' xy     \
+                  || _check_kernel_version 'lz4 -d'  '\002!L\030'   xxx    \
+                  || _check_kernel_version unzstd    '(\265/\375'   xxx    \
                   || true)
     VERSION="${VERSION#Linux version }"
     VERSION="${VERSION%% *}"
