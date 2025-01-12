@@ -176,6 +176,7 @@ _extract_compressed_kernel_configuration() {
 
 check_kernel_configuration() {
     log_begin_msg "Check kernel configuration"
+    SERIAL=isa-serial
     CONFIG="$(dirname $KERNEL)/config-$VERSION"
     if [ ! -f "$CONFIG" ] && [ -n "$MODULES" ]; then
         # Handle IKCONFIG case
@@ -210,7 +211,6 @@ VIRTIO_PCI=[ym]
 VIRTIO_NET=[ym]
 SERIAL_8250=y
 SERIAL_8250_CONSOLE=y
-SERIAL_8250_PCI=y
 TMPFS=y
 SYSFS=y
 PROC_FS=y
@@ -219,7 +219,10 @@ RD_GZIP=y
 DEVTMPFS=[ym]
 UNIX=y
 EOF
-    [ -n "$RW" ] || [ -n "$RO" ] || {
+    if grep -Eqc "CONFIG_SERIAL_8250_PCI=y" $CONFIG; then
+        SERIAL="pci-serial"
+    fi
+    if [ -n "$RW" ] || [ -n "$RO" ]; then
         if grep -Eqc "CONFIG_OVERLAYFS_FS=[ym]" $CONFIG; then
             log_ok_msg "Kernel configuration checked. overlayfs present"
             UNION="${UNION}${UNION+ }overlayfs"
@@ -233,7 +236,9 @@ EOF
         fi
         [ -n "$UNION" ] || \
             log_warn_msg "Kernel configuration checked. Neither overlayfs nor AUFS present"
-    }
+    else
+        log_ok_msg "Kernel configuration checked"
+    fi
 }
 
 check_kernel_modules() {
@@ -379,7 +384,7 @@ start_vm () {
     [ -z "$MEM" ] || qemu="$qemu -m $MEM"
     [ -z "$CONSOLE" ] || {
         qemu="$qemu -chardev socket,id=charserial2,path=$TMP/vm-$name-kernel.pipe,server=on,wait=on"
-        qemu="$qemu -device pci-serial,chardev=charserial2,id=serial2"
+        qemu="$qemu -device ${SERIAL},chardev=charserial2,id=serial2"
     }
     [ -z "$EXTRA_GETTYS" ] || {
         qemu="$qemu -device virtio-serial"
@@ -408,9 +413,9 @@ start_vm () {
         -device virtio-rng \
         \
         -chardev stdio,id=charserial0,signal=off \
-        -device pci-serial,chardev=charserial0,id=serial0 \
+        -device ${SERIAL},chardev=charserial0,id=serial0 \
         -chardev socket,id=charserial1,path=$TMP/vm-$name-serial.pipe,server=on,wait=off \
-        -device pci-serial,chardev=charserial1,id=serial1 \
+        -device ${SERIAL},chardev=charserial1,id=serial1 \
         \
         -chardev socket,id=con0,path=$TMP/vm-$name-console.pipe,server=on,wait=off \
         -mon chardev=con0,mode=readline \
