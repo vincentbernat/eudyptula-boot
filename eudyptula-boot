@@ -13,6 +13,8 @@
 # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+# Some parts are licensed under GPL-2.0.
 
 set -e
 
@@ -93,13 +95,12 @@ EOF
 }
 
 _check_kernel_version() {
-    cmd=$1
-    sig1=$2
-    sig2=$3
-    case $sig1,$sig2 in
-        ,) poss="0:_" ;;
-        *) poss=$(tr "${sig1}\n${sig2}" "\n${sig2}=" < "$KERNEL" | grep -abo "^${sig2}" || true) ;;
-    esac
+    # Adapted from https://github.com/torvalds/linux/blob/master/scripts/extract-vmlinux
+    # SPDX-License-Identifier: GPL-2.0
+    cmd="$1"
+    sig1="$2"
+    sig2="$3"
+    poss=$(tr "${sig1}\n${sig2}" "\n${sig2}=" < "$KERNEL" | grep -abo "^${sig2}" || true)
     [ -n "$poss" ] || return 1
     for pos in $poss; do
         pos=${pos%%:*}
@@ -137,10 +138,63 @@ check_kernel_version() {
     log_ok_msg "Found kernel $VERSION"
 }
 
+_extract_kernel_configuration() {
+    # Adapted from https://github.com/torvalds/linux/blob/master/scripts/extract-ikconfig
+    # SPDX-License-Identifier: GPL-2.0
+    kernel="$1"
+    config="$TMP/kernel-configuration"
+    cf1='IKCFG_ST\037\213\010'
+    cf2='0123456789'
+    pos=$(tr "$cf1\n$cf2" "\n$cf2=" < "$kernel" | grep -abo "^$cf2")
+    [ -n $pos ] || return 1
+	pos=${pos%%:*}
+	tail -c+$(($pos+8)) "$kernel" | zcat > "$config" 2> /dev/null
+    [ $? != 1 ] || {
+        rm -f "$config"
+        return 1
+    }
+}
+
+_extract_compressed_kernel_configuration() {
+    # Adapted from https://github.com/torvalds/linux/blob/master/scripts/extract-ikconfig
+    # SPDX-License-Identifier: GPL-2.0
+    kernel="$1"
+    cmd="$2"
+    sig1="$3"
+    sig2="$4"
+    poss=$(tr "${sig1}\n${sig2}" "\n${sig2}=" < "$kernel" | grep -abo "^${sig2}" || true)
+    [ -n "$poss" ] || return 1
+    for pos in $poss; do
+        pos=${pos%%:*}
+        tail -c+$pos "$kernel" | $cmd > $TMP/compressed-kernel-configuration 2> /dev/null
+        ! _extract_kernel_configuration $TMP/compressed-kernel-configuration || return 0
+    done
+    command -v ${cmd%% *} 2> /dev/null > /dev/null || \
+        log_warn_msg "Command \`$cmd' not found to uncompress $kernel"
+    return 1
+}
 
 check_kernel_configuration() {
     log_begin_msg "Check kernel configuration"
     CONFIG="$(dirname $KERNEL)/config-$VERSION"
+    if [ ! -f "$CONFIG" ] && [ -n "$MODULES" ]; then
+        # Handle IKCONFIG case
+        for obj in $KERNEL $MODULES/kernel/kernel/configs.ko*; do
+            [ -f "$obj" ] || continue
+            false \
+                || _extract_kernel_configuration "$obj" \
+                || _extract_compressed_kernel_configuration "$obj" gunzip    '\037\213\010' xy     \
+                || _extract_compressed_kernel_configuration "$obj" unxz      '\3757zXZ\000' abcde  \
+                || _extract_compressed_kernel_configuration "$obj" bunzip2   'BZh'          xy     \
+                || _extract_compressed_kernel_configuration "$obj" unlzma    '\135\0\0\0'   xxx    \
+                || _extract_compressed_kernel_configuration "$obj" 'lzop -d' '\211\114\132' xy     \
+                || _extract_compressed_kernel_configuration "$obj" 'lz4 -d'  '\002!L\030'   xxx    \
+                || _extract_compressed_kernel_configuration "$obj" unzstd    '(\265/\375'   xxx    \
+                || continue
+            break
+        done
+        [ ! -f "$TMP/kernel-configuration" ] || CONFIG="$TMP/kernel-configuration"
+    fi
     [ -f "$CONFIG" ] || {
         log_warn_msg "Unable to find configuration file $CONFIG"
         return
@@ -199,8 +253,8 @@ check_kernel_modules() {
 
 check_kernel() {
     check_kernel_version
-    check_kernel_configuration
     check_kernel_modules
+    check_kernel_configuration
 }
 
 check_dependencies() {
@@ -739,8 +793,8 @@ case $$,$STATE in
         PATH="$PATH":/usr/local/sbin:/usr/sbin:/sbin
 
         check_dependencies
-        check_kernel
         setup_tmp
+        check_kernel
         setup_initrd
         start_vm "$@"
         ret=255
