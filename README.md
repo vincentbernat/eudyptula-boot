@@ -1,5 +1,4 @@
-eudyptula-boot
-==============
+# eudyptula-boot
 
 `eudyptula-boot` boots a Linux kernel in a VM without a dedicated root
 filesystem. The root filesystem is the underlying root filesystem (or
@@ -20,8 +19,7 @@ Also see
 [this blog post](http://vincent.bernat.ch/en/blog/2014-eudyptula-boot)
 for a quick presentation of this tool.
 
-Usage
------
+## Usage
 
 It is preferable to have a kernel with AUFS or OverlayFS
 enabled. Ubuntu and Debian kernels are patched to support AUFS. Since
@@ -109,8 +107,22 @@ one of them, use:
 
 [guestfish]: http://libguestfs.org/guestfish.1.html
 
-Alternatives
-------------
+## Usage with Nix
+
+You can also run `eudyptula-boot` with the following command if you have Nix
+installed:
+
+    $ nix run github:vincentbernat/eudyptula-boot
+
+If you want to add arguments, separate them with `--`:
+
+    $ nix run github:vincentbernat/eudyptula-boot -- --net -m 4G
+    
+To run `minimal-configuration`, use:
+
+    $ nix run github:vincentbernat/eudyptula-boot#minimal-configuration
+
+## Alternatives
 
 Similar projects exist:
 
