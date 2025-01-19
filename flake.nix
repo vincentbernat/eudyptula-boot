@@ -30,7 +30,7 @@
           minimal-configuration = pkgs.writeShellApplication {
             name = "minimal-configuration";
             runtimeInputs = minimal-configuration-deps;
-            text = ./eudyptula-boot;
+            text = ./minimal-configuration;
           };
           default = eudyptula-boot;
         };
