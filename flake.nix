@@ -34,9 +34,22 @@
           };
           default = eudyptula-boot;
         };
-        devShells.default = pkgs.mkShell {
-          name = "eudyptula-boot";
-          nativeBuildInputs = eudyptula-boot-deps ++ minimal-configuration-deps;
+        devShells = rec {
+          eudyptula-boot = pkgs.mkShell {
+            name = "eudyptula-boot";
+            nativeBuildInputs = eudyptula-boot-deps ++ minimal-configuration-deps;
+          };
+          kernel-dev = pkgs.mkShell {
+            name = "kernel-dev";
+            nativeBuildInputs = [
+              self.packages.${system}.eudyptula-boot
+              self.packages.${system}.minimal-configuration
+              pkgs.linux.nativeBuildInputs
+              pkgs.ncurses
+              pkgs.pkg-config
+            ];
+          };
+          default = eudyptula-boot;
         };
       });
 }
