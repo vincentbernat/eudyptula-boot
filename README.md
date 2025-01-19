@@ -121,6 +121,10 @@ If you want to add arguments, separate them with `--`:
 To run `minimal-configuration`, use:
 
     $ nix run github:vincentbernat/eudyptula-boot#minimal-configuration
+    
+You can also get a shell with the tools to hack around the kernel:
+
+    $ nix develop github:vincentbernat/eudyptula-boot#kernel-dev
 
 ## Alternatives
 
