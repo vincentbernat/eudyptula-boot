@@ -12,7 +12,7 @@
         eudyptula-boot-deps = with pkgs; [
           (busybox.override { enableAppletSymlinks = false; })
           coreutils
-          qemu
+          qemu_kvm
           bintools
         ];
         minimal-configuration-deps = with pkgs; [
