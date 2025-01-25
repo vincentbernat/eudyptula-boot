@@ -460,7 +460,7 @@ case $$,$STATE in
     1,BEGIN)
         # In initrd
         log_info_msg "initrd started"
-        export PATH=/usr/local/bin:/usr/bin:/bin:/sbin:/usr/local/sbin:/usr/sbin
+        export PATH=/usr/local/bin:/usr/bin:/bin:/sbin:/usr/local/sbin:/usr/sbin:/nix/var/nix/profiles/system/sw/bin
         export HOME=/root
 
         [ ! -f /modules ] || {
@@ -593,7 +593,7 @@ case $$,$STATE in
         mkdir /dev/shm
         mount -t tmpfs tmpfs /dev/shm
         udevadm info --cleanup-db
-        for udev in /lib/systemd/systemd-udevd /usr/lib/systemd/systemd-udevd $(command -v udevd 2> /dev/null); do
+        for udev in $(dirname $(readlink -f $(command -v udevadm 2> /dev/null)))/../lib/systemd/systemd-udevd $(command -v udevd 2> /dev/null); do
             [ ! -x $udev ] || break
         done
         $udev --daemon
@@ -657,10 +657,10 @@ case $$,$STATE in
         export STATE=GETTY
         [ ! -f /tmp/config/gettys ] || {
             for i in $(seq $(cat /tmp/config/gettys)); do
-                while true; do /sbin/agetty -n -L hvc$((i-1)) -a root -l /tmp/init -i 115200 $TERM ; done &
+                while true; do agetty -n -L hvc$((i-1)) -a root -l /tmp/init -i 115200 $TERM ; done &
             done
         }
-        exec setsid /sbin/agetty -n -L ttyS0 -a root -l /tmp/init -i 115200 $TERM
+        exec setsid agetty -n -L ttyS0 -a root -l /tmp/init -i 115200 $TERM
         ;;
 
     *,GETTY)
