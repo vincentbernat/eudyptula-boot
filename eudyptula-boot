@@ -222,7 +222,7 @@ EOF
     if grep -Eqc "CONFIG_SERIAL_8250_PCI=y" $CONFIG; then
         SERIAL="pci-serial"
     fi
-    if [ -n "$RW" ] || [ -n "$RO" ]; then
+    if [ -z "$RW" ] && [ -z "$RO" ]; then
         if grep -Eqc "CONFIG_OVERLAYFS_FS=[ym]" $CONFIG; then
             log_ok_msg "Kernel configuration checked. overlayfs present"
             UNION="${UNION}${UNION+ }overlayfs"
