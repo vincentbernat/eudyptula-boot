@@ -178,9 +178,9 @@ check_kernel_configuration() {
     log_begin_msg "Check kernel configuration"
     SERIAL=isa-serial
     CONFIG="$(dirname $KERNEL)/config-$VERSION"
-    if [ ! -f "$CONFIG" ] && [ -n "$MODULES" ]; then
+    if [ ! -f "$CONFIG" ]; then
         # Handle IKCONFIG case
-        for obj in $KERNEL $MODULES/kernel/kernel/configs.ko*; do
+        for obj in $KERNEL ${MODULES+$MODULES/kernel/kernel/configs.ko*}; do
             [ -f "$obj" ] || continue
             false \
                 || _extract_kernel_configuration "$obj" \
