@@ -276,6 +276,32 @@ setup_tmp () {
     log_info_msg "TMP is $TMP"
 }
 
+copy_exec () {
+    for exec in "$@"; do
+        case $exec in
+            */bin/*) target=${DESTDIR}/bin/${exec##*/bin/} ;;
+            *) target=${DESTDIR}/$exec
+        esac
+        install -D  "${exec}" "${target}"
+
+        # First, get the loader and copy it (unless static binary)
+        objcopy -O binary -j .interp "${target}" $TMP/interp
+        [ -s $TMP/interp ] || continue
+
+        ld=$(tr -d '\000' < $TMP/interp)
+        [ -f "${DESTDIR}/$ld" ] || install -D "$ld" "${DESTDIR}/$ld"
+
+        # Then, use it to get the other libs
+        for x in $(LD_TRACE_LOADED_OBJECTS=1 $ld "${target}" 2> /dev/null | sed -e '
+               /\//!d;
+               /linux-gate/d;
+               /=>/ {s/.*=>[[:blank:]]*\([^[:blank:]]*\).*/\1/};
+               s/[[:blank:]]*\([^[:blank:]]*\) (.*)/\1/' 2>/dev/null); do
+            [ -f "${DESTDIR}/$x" ] || install -D "$x" "${DESTDIR}/$x"
+        done
+    done
+}
+
 setup_initrd () {
     log_begin_msg "Build initrd"
     DESTDIR=$TMP/initrd
@@ -286,23 +312,7 @@ setup_initrd () {
     # https://git.busybox.net/busybox/commit/modutils/modprobe-small.c?id=af5277f883e8fc2e0236aa9ecc5115ecaffd0ccb
     bins="busybox insmod"
     for bin in $bins; do
-        install -D "$(command -v $bin)" ${DESTDIR}/bin/$bin
-
-        # First, get the loader and copy it (unless static binary)
-        objcopy -O binary -j .interp "$(command -v $bin)" $TMP/interp
-        [ -s $TMP/interp ] || continue
-
-        ld=$(tr -d '\000' < $TMP/interp)
-        [ -f "${DESTDIR}/$ld" ] || install -D "$ld" "${DESTDIR}/$ld"
-
-        # Then, use it to get the other libs
-        for x in $(LD_TRACE_LOADED_OBJECTS=1 $ld "$(command -v $bin)" 2> /dev/null | sed -e '
-               /\//!d;
-               /linux-gate/d;
-               /=>/ {s/.*=>[[:blank:]]*\([^[:blank:]]*\).*/\1/};
-               s/[[:blank:]]*\([^[:blank:]]*\) (.*)/\1/' 2>/dev/null); do
-            [ -f "${DESTDIR}/$x" ] || install -D "$x" "${DESTDIR}/$x"
-        done
+        copy_exec $(command -v $bin)
     done
 
     # Configure busybox
@@ -325,10 +335,16 @@ setup_initrd () {
                 [ "${prefix}" = "insmod" ] || continue
                 grep -qFw "$kmod" ${DESTDIR}/modules 2> /dev/null || {
                     install -D "$kmod" "${DESTDIR}/${kmod}"
-                    echo /bin/insmod $kmod $options >> ${DESTDIR}/modules
+                    echo $(command -v insmod) $kmod $options >> ${DESTDIR}/modules
                 }
             done
         done
+        if grep -qF .ko.xz ${DESTDIR}/modules; then
+            copy_exec /usr/lib/*-linux-gnu/liblzma.so.5
+        fi
+        if grep -qF .ko.zstd ${DESTDIR}/modules; then
+            copy_exec /usr/lib/*-linux-gnu/libzstd.so.1
+        fi
     }
 
     # Copy this program
