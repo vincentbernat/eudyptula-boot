@@ -339,11 +339,13 @@ setup_initrd () {
                 }
             done
         done
-        if grep -qF .ko.xz ${DESTDIR}/modules; then
-            copy_exec /usr/lib/*-linux-gnu/liblzma.so.5
-        fi
-        if grep -qF .ko.zstd ${DESTDIR}/modules; then
-            copy_exec /usr/lib/*-linux-gnu/libzstd.so.1
+        if ! grep -Fxq CONFIG_MODULE_DECOMPRESS=y ${CONFIG}; then
+            if grep -qF .ko.xz ${DESTDIR}/modules; then
+                copy_exec /usr/lib/*-linux-gnu/liblzma.so.5
+            fi
+            if grep -qF .ko.zstd ${DESTDIR}/modules; then
+                copy_exec /usr/lib/*-linux-gnu/libzstd.so.1
+            fi
         fi
     }
 
@@ -481,6 +483,7 @@ case $$,$STATE in
 
         [ ! -f /modules ] || {
             log_info_msg "Loading modules"
+            mkdir -p /sys && mount -n -t sysfs sys /sys
             . /modules
         }
 
